@@ -1,4 +1,4 @@
-import { openDB, type DBSchema } from 'idb'
+import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { CareReminder, JournalEntry, Measurement, MediaRecord, OutboxItem, Pet } from './types'
 
 interface PawprintDB extends DBSchema {
@@ -10,10 +10,14 @@ interface PawprintDB extends DBSchema {
   outbox: { key: string; value: OutboxItem; indexes: { 'by-status': string } }
 }
 
-const DB_NAME = 'pawprint-life-book'
+const LEGACY_DB_NAME = 'pawprint-life-book'
+const MIGRATION_KEY = 'pawprint:legacy-data-claimed'
+let activeOwnerId: string | undefined
+let activeDb: IDBPDatabase<PawprintDB> | undefined
+let activeDbPromise: Promise<IDBPDatabase<PawprintDB>> | undefined
 
-export const getDb = () =>
-  openDB<PawprintDB>(DB_NAME, 1, {
+const openPawprintDb = (name: string) =>
+  openDB<PawprintDB>(name, 1, {
     upgrade(db) {
       db.createObjectStore('pets', { keyPath: 'id' })
       const journal = db.createObjectStore('journal', { keyPath: 'id' })
@@ -29,6 +33,53 @@ export const getDb = () =>
       outbox.createIndex('by-status', 'status')
     },
   })
+
+export async function configureLocalOwner(ownerId: string, migrateLegacy = true) {
+  if (activeOwnerId === ownerId && activeDbPromise) return activeDbPromise
+  activeDb?.close()
+  activeOwnerId = ownerId
+  activeDbPromise = openPawprintDb(`${LEGACY_DB_NAME}:${encodeURIComponent(ownerId)}`)
+  activeDb = await activeDbPromise
+  if (migrateLegacy) await claimLegacyData(activeDb)
+  return activeDb
+}
+
+export function clearLocalOwner() {
+  activeDb?.close()
+  activeDb = undefined
+  activeDbPromise = undefined
+  activeOwnerId = undefined
+}
+
+export function getDb() {
+  if (!activeDbPromise) throw new Error('Local account storage has not been initialized.')
+  return activeDbPromise
+}
+
+async function claimLegacyData(target: IDBPDatabase<PawprintDB>) {
+  if (typeof localStorage === 'undefined' || localStorage.getItem(MIGRATION_KEY)) return
+  if ((await target.count('pets')) > 0) {
+    localStorage.setItem(MIGRATION_KEY, activeOwnerId ?? 'claimed')
+    return
+  }
+
+  const legacy = await openPawprintDb(LEGACY_DB_NAME)
+  const [petsData, journalData, measurementsData, remindersData, mediaData, outboxData] = await Promise.all([
+    legacy.getAll('pets'), legacy.getAll('journal'), legacy.getAll('measurements'), legacy.getAll('reminders'), legacy.getAll('media'), legacy.getAll('outbox'),
+  ])
+  const tx = target.transaction(['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox'], 'readwrite')
+  await Promise.all([
+    ...petsData.map((record) => tx.objectStore('pets').put(record)),
+    ...journalData.map((record) => tx.objectStore('journal').put(record)),
+    ...measurementsData.map((record) => tx.objectStore('measurements').put(record)),
+    ...remindersData.map((record) => tx.objectStore('reminders').put(record)),
+    ...mediaData.map((record) => tx.objectStore('media').put(record)),
+    ...outboxData.map((record) => tx.objectStore('outbox').put(record)),
+  ])
+  await tx.done
+  legacy.close()
+  localStorage.setItem(MIGRATION_KEY, activeOwnerId ?? 'claimed')
+}
 
 function notifyChanged() {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pawprint:data-changed'))
@@ -169,6 +220,7 @@ export async function listOutbox() {
 }
 
 export async function resetDatabaseForTests() {
+  if (!activeDbPromise) await configureLocalOwner('test-user', false)
   const db = await getDb()
   const tx = db.transaction(['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox'], 'readwrite')
   await Promise.all([

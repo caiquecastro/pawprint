@@ -4,8 +4,8 @@ export const pets = sqliteTable('pets', {
   id: text('id').primaryKey(), name: text('name').notNull(), species: text('species').notNull(), breed: text('breed'),
   birthDate: text('birth_date'), approximateBirthDate: integer('approximate_birth_date', { mode: 'boolean' }).notNull().default(false),
   currentWeight: real('current_weight'), weightUnit: text('weight_unit').notNull().default('kg'), avatarObjectKey: text('avatar_object_key'),
-  ownerId: text('owner_id').notNull().default('single-owner'), createdAt: text('created_at').notNull(), updatedAt: text('updated_at').notNull(),
-})
+  ownerId: text('owner_id').notNull(), createdAt: text('created_at').notNull(), updatedAt: text('updated_at').notNull(),
+}, (table) => [index('pets_owner_idx').on(table.ownerId)])
 
 export const journalEntries = sqliteTable('journal_entries', {
   id: text('id').primaryKey(), petId: text('pet_id').notNull().references(() => pets.id, { onDelete: 'cascade' }), type: text('type').notNull(),
@@ -32,5 +32,5 @@ export const media = sqliteTable('media', {
 }, (table) => [index('media_pet_idx').on(table.petId), index('media_journal_idx').on(table.journalEntryId)])
 
 export const processedMutations = sqliteTable('processed_mutations', {
-  id: text('id').primaryKey(), entityId: text('entity_id').notNull(), processedAt: text('processed_at').notNull(),
-})
+  id: text('id').primaryKey(), ownerId: text('owner_id').notNull(), entityId: text('entity_id').notNull(), processedAt: text('processed_at').notNull(),
+}, (table) => [index('processed_mutations_owner_idx').on(table.ownerId)])
