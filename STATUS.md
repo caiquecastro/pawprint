@@ -38,6 +38,6 @@
 
 ## Deployment prerequisites
 
-- Create the production D1 database and R2 bucket.
-- Replace the placeholder D1 database ID in `wrangler.jsonc`.
+- Create or reuse the production D1 database and R2 bucket.
+- The committed D1 database ID targets Pawprint's production account; replace it when deploying from another Cloudflare account.
 - Apply migrations with `npm run db:migrate:remote`, then run `npm run deploy`.

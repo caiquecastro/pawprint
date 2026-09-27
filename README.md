@@ -25,8 +25,8 @@ npm run preview
 
 ## Cloudflare deployment
 
-1. Create a D1 database named `pawprint-db` and an R2 bucket named `pawprint-photos`.
-2. Replace the placeholder `database_id` in `wrangler.jsonc` with the D1 database ID.
+1. Create or reuse a D1 database named `pawprint-db` and an R2 bucket named `pawprint-photos`.
+2. The committed `database_id` targets Pawprint's production database. When deploying from another Cloudflare account, replace it with that account's D1 database ID.
 3. Run `npm run cf-typegen` after changing bindings.
 4. Apply the schema with `npm run db:migrate:remote`.
 5. Preview with `npm run preview`, then deploy with `npm run deploy`.
