@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getJournalEntry, listOutbox, resetDatabaseForTests, saveJournalEntry } from './local-db'
+import { clearLocalOwner, configureLocalOwner, getJournalEntry, listOutbox, listPets, resetDatabaseForTests, saveJournalEntry, savePet } from './local-db'
 import { syncOutbox } from './sync'
 
 const entry = () => ({
@@ -10,7 +10,21 @@ const entry = () => ({
 })
 
 describe('offline outbox', () => {
-  beforeEach(async () => { await resetDatabaseForTests(); vi.unstubAllGlobals() })
+  beforeEach(async () => {
+    clearLocalOwner()
+    await configureLocalOwner('test-user', false)
+    await resetDatabaseForTests()
+    vi.unstubAllGlobals()
+  })
+
+  it('keeps local records isolated by authenticated account', async () => {
+    const now = '2026-09-26T12:00:00.000Z'
+    await savePet({ id: 'pet-a', name: 'Juniper', species: 'dog', approximateBirthDate: false, weightUnit: 'kg', createdAt: now, updatedAt: now })
+    await configureLocalOwner('another-user', false)
+    expect(await listPets()).toHaveLength(0)
+    await configureLocalOwner('test-user', false)
+    expect((await listPets())[0]?.name).toBe('Juniper')
+  })
 
   it('keeps a create idempotent when edited before sync', async () => {
     await saveJournalEntry(entry(), 'create')

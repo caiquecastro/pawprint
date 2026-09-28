@@ -1,3 +1,4 @@
+import { ClerkProvider } from '@clerk/tanstack-react-start'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { AppProviders } from '../components/AppProviders'
 
@@ -46,7 +47,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <a className="skip-link" href="#main-content">Skip to content</a>
-        <AppProviders>{children}</AppProviders>
+        <ClerkProvider signInUrl="/sign-in">
+          <AppProviders>{children}</AppProviders>
+        </ClerkProvider>
         <Scripts />
       </body>
     </html>

@@ -1,3 +1,4 @@
+import { UserButton } from '@clerk/tanstack-react-start'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Bell, BookOpenText, HeartPulse, Home, PawPrint, Plus, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -54,6 +55,7 @@ export function AppShell({ petId, children }: { petId: string; children: React.R
               {online ? uploadProgress ? `Uploading ${uploadProgress}%` : `${pending} pending` : 'Offline'}
             </button>
           )}
+          <UserButton appearance={{ elements: { avatarBox: 'account-avatar' } }} />
           <Link to="/settings" className="icon-button" aria-label="Settings"><Settings size={20} /></Link>
         </div>
       </header>

@@ -48,6 +48,7 @@ h3 { line-height: 1.25; }
 .icon-button { width: 44px; height: 44px; display: inline-grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
 .icon-button:hover { background: #e8ecee; }
 .icon-button.danger { color: #a03d30; }
+.account-avatar { width: 34px; height: 34px; }
 .sync-pill { min-height: 38px; display: flex; align-items: center; gap: .45rem; border: 1px solid var(--line); background: var(--white); border-radius: 999px; padding: 0 .75rem; font-size: .75rem; font-weight: 700; cursor: pointer; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow-deep); }
 .status-dot.offline { background: var(--coral); }
@@ -232,6 +233,12 @@ h3 { line-height: 1.25; }
 .back-button { min-height: 44px; display: inline-flex; align-items: center; gap: .25rem; margin-bottom: .7rem; padding: 0; border: 0; background: transparent; font-weight: 800; cursor: pointer; }
 .privacy-note { margin: 1rem auto 0; max-width: 360px; color: #79838e; text-align: center; font-size: .72rem; }
 
+.auth-page { min-height: 100svh; display: grid; align-content: start; background: var(--paper); }
+.auth-card { width: min(100%, 590px); margin: 0 auto; padding: 1.2rem 1rem 2rem; }
+.auth-card h1 { margin-bottom: 1rem; }
+.clerk-root, .clerk-card-box { width: 100%; }
+.clerk-card { width: 100%; margin-top: 1.4rem; border: 1px solid var(--line); box-shadow: var(--shadow); }
+
 .settings-page { width: min(100%, 680px); min-height: 100svh; margin: 0 auto; padding: calc(1.2rem + env(safe-area-inset-top)) 1rem 2rem; }
 .settings-page h1 { margin: .2rem 0 1.4rem; }
 .settings-list { padding: .3rem 1rem 1rem; }
@@ -250,7 +257,9 @@ h3 { line-height: 1.25; }
   .journal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .journal-card.has-photo { grid-template-columns: 140px 1fr; }
   .setup-page { align-content: center; padding: 2rem 0; }
+  .auth-page { align-content: center; padding: 2rem 0; }
   .setup-card { padding: 2rem; border: 1px solid var(--line); border-radius: 28px; background: var(--white); box-shadow: var(--shadow); }
+  .auth-card { padding: 2rem; }
   .setup-brand { position: fixed; top: 0; left: 0; }
   .sheet-dialog { margin: auto; border-radius: 26px; }
   .composer { padding: 1.5rem; }
