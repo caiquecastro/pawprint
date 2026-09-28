@@ -22,7 +22,9 @@ async function runSync(force: boolean) {
         body: JSON.stringify(item),
       })
       if (!response.ok) {
-        const details = await response.json().catch(() => ({ message: 'Sync is temporarily unavailable.' })) as { message?: string }
+        const details = (await response
+          .json()
+          .catch(() => ({ message: 'Sync is temporarily unavailable.' }))) as { message?: string }
         throw new Error(details.message || 'Sync is temporarily unavailable.')
       }
       await updateSyncResult(item, true)
@@ -46,11 +48,24 @@ async function syncMedia(force: boolean) {
       if (item.journalEntryId) form.append('journalEntryId', item.journalEntryId)
       const response = await fetch('/api/uploads', { method: 'POST', body: form })
       await updateMediaUpload(item.id, { progress: 75 })
-      const result = await response.json().catch(() => ({})) as { message?: string; objectKey?: string; url?: string }
+      const result = (await response.json().catch(() => ({}))) as {
+        message?: string
+        objectKey?: string
+        url?: string
+      }
       if (!response.ok) throw new Error(result.message || 'Photo upload failed.')
-      await updateMediaUpload(item.id, { syncState: 'synced', progress: 100, objectKey: result.objectKey, localUrl: result.url ?? item.localUrl })
+      await updateMediaUpload(item.id, {
+        syncState: 'synced',
+        progress: 100,
+        objectKey: result.objectKey,
+        localUrl: result.url ?? item.localUrl,
+      })
     } catch (error) {
-      await updateMediaUpload(item.id, { syncState: 'failed', error: error instanceof Error ? error.message : 'Photo upload failed.', progress: 0 })
+      await updateMediaUpload(item.id, {
+        syncState: 'failed',
+        error: error instanceof Error ? error.message : 'Photo upload failed.',
+        progress: 0,
+      })
     }
   }
 }

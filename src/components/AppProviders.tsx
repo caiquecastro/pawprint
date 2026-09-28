@@ -4,7 +4,9 @@ import { registerServiceWorker } from '../lib/pwa'
 import { startSyncService, syncOutbox } from '../lib/sync'
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, retry: 1 } } }))
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, retry: 1 } } }),
+  )
 
   useEffect(() => {
     const stop = startSyncService()

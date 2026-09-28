@@ -4,26 +4,36 @@ import { getJournalEntry, listOutbox, resetDatabaseForTests, saveJournalEntry } 
 import { syncOutbox } from './sync'
 
 const entry = () => ({
-  id: 'a0ee2f36-1c2e-4e3d-9ab0-b0b33399312a', petId: '108cb27a-70c1-421e-a062-9c5b707445ae', type: 'memory' as const,
-  occurredAt: '2026-09-26T12:00:00.000Z', title: 'Window watch', body: 'A long, serious look at a pigeon.',
-  createdAt: '2026-09-26T12:00:00.000Z', updatedAt: '2026-09-26T12:00:00.000Z',
+  id: 'a0ee2f36-1c2e-4e3d-9ab0-b0b33399312a',
+  petId: '108cb27a-70c1-421e-a062-9c5b707445ae',
+  type: 'memory' as const,
+  occurredAt: '2026-09-26T12:00:00.000Z',
+  title: 'Window watch',
+  body: 'A long, serious look at a pigeon.',
+  createdAt: '2026-09-26T12:00:00.000Z',
+  updatedAt: '2026-09-26T12:00:00.000Z',
 })
 
 describe('offline outbox', () => {
-  beforeEach(async () => { await resetDatabaseForTests(); vi.unstubAllGlobals() })
+  beforeEach(async () => {
+    await resetDatabaseForTests()
+    vi.unstubAllGlobals()
+  })
 
   it('keeps a create idempotent when edited before sync', async () => {
     await saveJournalEntry(entry(), 'create')
     await saveJournalEntry({ ...entry(), title: 'Edited before sync' }, 'update')
     const outbox = await listOutbox()
     expect(outbox).toHaveLength(1)
-    expect(outbox[0]?.operation).toBe('create')
-    expect((outbox[0]?.payload as { title: string }).title).toBe('Edited before sync')
+    const queued = outbox[0]
+    if (!queued) throw new Error('Expected one queued change')
+    expect(queued.operation).toBe('create')
+    expect((queued.payload as { title: string }).title).toBe('Edited before sync')
   })
 
   it('synchronizes a client UUID exactly once', async () => {
     await saveJournalEntry(entry(), 'create')
-    const fetchMock = vi.fn().mockResolvedValue(Response.json({ ok: true }))
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ ok: true }))
     vi.stubGlobal('fetch', fetchMock)
     await syncOutbox(true)
     await syncOutbox(true)
@@ -34,7 +44,10 @@ describe('offline outbox', () => {
 
   it('preserves failed changes and retries them', async () => {
     await saveJournalEntry(entry(), 'create')
-    const fetchMock = vi.fn().mockResolvedValueOnce(Response.json({ message: 'Try later' }, { status: 503 })).mockResolvedValueOnce(Response.json({ ok: true }))
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ message: 'Try later' }, { status: 503 }))
+      .mockResolvedValueOnce(Response.json({ ok: true }))
     vi.stubGlobal('fetch', fetchMock)
     await syncOutbox(true)
     expect((await listOutbox())[0]?.status).toBe('failed')
