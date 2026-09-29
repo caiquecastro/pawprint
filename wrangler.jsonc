@@ -7,12 +7,15 @@
   "observability": {
     "enabled": true,
     "logs": { "enabled": true, "head_sampling_rate": 1 },
-    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 },
   },
   "d1_databases": [
-    { "binding": "DB", "database_name": "pawprint-db", "database_id": "a26c5c8f-a496-4b6a-9926-8b8139f692b6", "migrations_dir": "migrations" }
+    {
+      "binding": "DB",
+      "database_name": "pawprint-db",
+      "database_id": "a26c5c8f-a496-4b6a-9926-8b8139f692b6",
+      "migrations_dir": "migrations",
+    },
   ],
-  "r2_buckets": [
-    { "binding": "PHOTOS", "bucket_name": "pawprint-photos" }
-  ]
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "pawprint-photos" }],
 }

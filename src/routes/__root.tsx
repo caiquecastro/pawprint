@@ -46,7 +46,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <a className="skip-link" href="#main-content">Skip to content</a>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
         <ClerkProvider signInUrl="/sign-in">
           <AppProviders>{children}</AppProviders>
         </ClerkProvider>

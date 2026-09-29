@@ -45,44 +45,99 @@ export function AppShell({ petId, children }: { petId: string; children: React.R
     <div className="app-frame">
       <header className="topbar">
         <Link to="/pets/$petId" params={{ petId }} className="brand" aria-label="Pawprint home">
-          <span className="brand-mark"><PawPrint size={18} strokeWidth={2.7} /></span>
+          <span className="brand-mark">
+            <PawPrint size={18} strokeWidth={2.7} />
+          </span>
           <span>Pawprint</span>
         </Link>
         <div className="topbar-actions">
           {(!online || pending > 0) && (
-            <button className="sync-pill" onClick={() => void syncOutbox(true)} aria-label={`${pending} changes waiting to sync`}>
+            <button
+              className="sync-pill"
+              onClick={() => void syncOutbox(true)}
+              aria-label={`${pending} changes waiting to sync`}
+            >
               <span className={online ? 'status-dot pending' : 'status-dot offline'} />
-              {online ? uploadProgress ? `Uploading ${uploadProgress}%` : `${pending} pending` : 'Offline'}
+              {online
+                ? uploadProgress
+                  ? `Uploading ${uploadProgress}%`
+                  : `${pending} pending`
+                : 'Offline'}
             </button>
           )}
           <UserButton appearance={{ elements: { avatarBox: 'account-avatar' } }} />
-          <Link to="/settings" className="icon-button" aria-label="Settings"><Settings size={20} /></Link>
+          <Link to="/settings" className="icon-button" aria-label="Settings">
+            <Settings size={20} />
+          </Link>
         </div>
       </header>
 
       {updateReady && (
-        <div className="update-banner" role="status">
+        <output className="update-banner">
           A fresh version is ready.
           <button onClick={() => window.location.reload()}>Update</button>
-        </div>
+        </output>
       )}
 
-      <main id="main-content" className="screen">{children}</main>
+      <main id="main-content" className="screen">
+        {children}
+      </main>
 
       <nav className="bottom-nav" aria-label="Main navigation">
-        {items.slice(0, 2).map((item) => <NavItem key={item.label} {...item} petId={petId} active={item.label === 'Today' ? path === `/pets/${petId}` : path.startsWith(`/pets/${petId}/journal`)} />)}
-        <Link to="/pets/$petId/journal" search={{ compose: 'new' }} params={{ petId }} className="add-nav" aria-label="Add a moment">
+        {items.slice(0, 2).map((item) => (
+          <NavItem
+            key={item.label}
+            {...item}
+            petId={petId}
+            active={
+              item.label === 'Today'
+                ? path === `/pets/${petId}`
+                : path.startsWith(`/pets/${petId}/journal`)
+            }
+          />
+        ))}
+        <Link
+          to="/pets/$petId/journal"
+          search={{ compose: 'new' }}
+          params={{ petId }}
+          className="add-nav"
+          aria-label="Add a moment"
+        >
           <Plus size={27} strokeWidth={2.5} />
         </Link>
-        {items.slice(2).map((item) => <NavItem key={item.label} {...item} petId={petId} active={path.startsWith(item.to.replace('$petId', petId))} />)}
+        {items.slice(2).map((item) => (
+          <NavItem
+            key={item.label}
+            {...item}
+            petId={petId}
+            active={path.startsWith(item.to.replace('$petId', petId))}
+          />
+        ))}
       </nav>
     </div>
   )
 }
 
-function NavItem({ to, label, icon: Icon, petId, active }: { to: string; label: string; icon: typeof Home; petId: string; active: boolean }) {
+function NavItem({
+  to,
+  label,
+  icon: Icon,
+  petId,
+  active,
+}: {
+  to: string
+  label: string
+  icon: typeof Home
+  petId: string
+  active: boolean
+}) {
   return (
-    <Link to={to} params={{ petId }} className={`nav-item ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
+    <Link
+      to={to}
+      params={{ petId }}
+      className={`nav-item ${active ? 'active' : ''}`}
+      aria-current={active ? 'page' : undefined}
+    >
       <Icon size={21} />
       <span>{label}</span>
     </Link>

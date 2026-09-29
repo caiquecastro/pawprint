@@ -47,20 +47,47 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       if (cachedOwner) void initialize(cachedOwner)
     }
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [isLoaded, isSignedIn, publicRoute, userId])
 
   if (publicRoute) return children
   if (isLoaded && (!isSignedIn || !userId || localOwner !== userId)) {
-    return <LoadingScreen message={isSignedIn ? 'Opening your private life book…' : 'Taking you to sign in…'} />
+    return (
+      <LoadingScreen
+        message={isSignedIn ? 'Opening your private life book…' : 'Taking you to sign in…'}
+      />
+    )
   }
-  if (!localOwner) return <LoadingScreen message={navigatorSafeOnline() ? 'Opening your private life book…' : 'Opening your offline memories…'} />
+  if (!localOwner)
+    return (
+      <LoadingScreen
+        message={
+          navigatorSafeOnline()
+            ? 'Opening your private life book…'
+            : 'Opening your offline memories…'
+        }
+      />
+    )
 
-  return <AuthenticatedProviders key={localOwner} syncEnabled={Boolean(isLoaded && isSignedIn)}>{children}</AuthenticatedProviders>
+  return (
+    <AuthenticatedProviders key={localOwner} syncEnabled={Boolean(isLoaded && isSignedIn)}>
+      {children}
+    </AuthenticatedProviders>
+  )
 }
 
-function AuthenticatedProviders({ children, syncEnabled }: { children: React.ReactNode; syncEnabled: boolean }) {
-  const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, retry: 1 } } }))
+function AuthenticatedProviders({
+  children,
+  syncEnabled,
+}: {
+  children: React.ReactNode
+  syncEnabled: boolean
+}) {
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, retry: 1 } } }),
+  )
 
   useEffect(() => {
     const stop = syncEnabled ? startSyncService() : () => undefined
@@ -86,7 +113,9 @@ function AuthenticatedProviders({ children, syncEnabled }: { children: React.Rea
 function LoadingScreen({ message }: { message: string }) {
   return (
     <main id="main-content" className="launch-screen" aria-live="polite">
-      <span className="launch-mark"><PawPrint size={34} /></span>
+      <span className="launch-mark">
+        <PawPrint size={34} />
+      </span>
       <p>{message}</p>
     </main>
   )

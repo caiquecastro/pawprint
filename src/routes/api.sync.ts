@@ -5,20 +5,49 @@ import { syncMutationSchema } from '../lib/schemas'
 import { getAuthenticatedUserId } from '../server/auth'
 import { OwnershipError, PawprintRepository } from '../server/repository'
 
-export const Route = createFileRoute('/api/sync')({ server: { handlers: {
-  POST: async ({ request }) => {
-    try {
-      const userId = await getAuthenticatedUserId()
-      if (!userId) return Response.json({ message: 'Sign in to synchronize your changes.' }, { status: 401 })
-      const mutation = syncMutationSchema.parse(await request.json())
-      if (!env.DB) return Response.json({ message: 'Cloud sync is not configured yet. Your change is safe on this device.' }, { status: 503 })
-      const result = await new PawprintRepository(env.DB, userId).applyMutation({ ...mutation, attemptCount: 0, status: 'pending' })
-      return Response.json({ ok: true, ...result })
-    } catch (error) {
-      if (error instanceof Error && error.name === 'ZodError') return Response.json({ message: 'This change could not be validated.' }, { status: 400 })
-      if (error instanceof OwnershipError) return Response.json({ message: 'Record not found.' }, { status: 404 })
-      console.error(JSON.stringify({ event: 'sync_mutation_failed', message: error instanceof Error ? error.message : 'unknown' }))
-      return Response.json({ message: 'Sync is temporarily unavailable. Your change remains on this device.' }, { status: 500 })
-    }
+export const Route = createFileRoute('/api/sync')({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        try {
+          const userId = await getAuthenticatedUserId()
+          if (!userId)
+            return Response.json(
+              { message: 'Sign in to synchronize your changes.' },
+              { status: 401 },
+            )
+          const mutation = syncMutationSchema.parse(await request.json())
+          if (!env.DB)
+            return Response.json(
+              { message: 'Cloud sync is not configured yet. Your change is safe on this device.' },
+              { status: 503 },
+            )
+          const result = await new PawprintRepository(env.DB, userId).applyMutation({
+            ...mutation,
+            attemptCount: 0,
+            status: 'pending',
+          })
+          return Response.json({ ok: true, ...result })
+        } catch (error) {
+          if (error instanceof Error && error.name === 'ZodError')
+            return Response.json(
+              { message: 'This change could not be validated.' },
+              { status: 400 },
+            )
+          if (error instanceof OwnershipError)
+            return Response.json({ message: 'Record not found.' }, { status: 404 })
+          console.error(
+            JSON.stringify({
+              event: 'sync_mutation_failed',
+              message: error instanceof Error ? error.message : 'unknown',
+            }),
+          )
+          return Response.json(
+            { message: 'Sync is temporarily unavailable. Your change remains on this device.' },
+            { status: 500 },
+          )
+        }
+      },
+    },
   },
-} } })
+})

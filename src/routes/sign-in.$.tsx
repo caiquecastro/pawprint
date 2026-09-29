@@ -7,11 +7,22 @@ export const Route = createFileRoute('/sign-in/$')({ component: SignInRoute })
 function SignInRoute() {
   return (
     <main id="main-content" className="auth-page">
-      <div className="setup-brand"><span><PawPrint size={17} /></span> Pawprint</div>
+      <div className="setup-brand">
+        <span>
+          <PawPrint size={17} />
+        </span>{' '}
+        Pawprint
+      </div>
       <section className="auth-card">
         <p className="eyebrow">Your private life book</p>
-        <h1>Come back to<br />their story.</h1>
-        <p className="lede">Sign in to keep every memory private and synchronized across your devices.</p>
+        <h1>
+          Come back to
+          <br />
+          their story.
+        </h1>
+        <p className="lede">
+          Sign in to keep every memory private and synchronized across your devices.
+        </p>
         <SignIn
           routing="path"
           path="/sign-in"
@@ -27,7 +38,10 @@ function SignInRoute() {
             elements: { rootBox: 'clerk-root', cardBox: 'clerk-card-box', card: 'clerk-card' },
           }}
         />
-        <p className="privacy-note">Your cloud data is only available to your signed-in account. Offline changes remain on this device until you reconnect.</p>
+        <p className="privacy-note">
+          Your cloud data is only available to your signed-in account. Offline changes remain on
+          this device until you reconnect.
+        </p>
       </section>
     </main>
   )

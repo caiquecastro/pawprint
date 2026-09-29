@@ -64,10 +64,19 @@ async function claimLegacyData(target: IDBPDatabase<PawprintDB>) {
   }
 
   const legacy = await openPawprintDb(LEGACY_DB_NAME)
-  const [petsData, journalData, measurementsData, remindersData, mediaData, outboxData] = await Promise.all([
-    legacy.getAll('pets'), legacy.getAll('journal'), legacy.getAll('measurements'), legacy.getAll('reminders'), legacy.getAll('media'), legacy.getAll('outbox'),
-  ])
-  const tx = target.transaction(['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox'], 'readwrite')
+  const [petsData, journalData, measurementsData, remindersData, mediaData, outboxData] =
+    await Promise.all([
+      legacy.getAll('pets'),
+      legacy.getAll('journal'),
+      legacy.getAll('measurements'),
+      legacy.getAll('reminders'),
+      legacy.getAll('media'),
+      legacy.getAll('outbox'),
+    ])
+  const tx = target.transaction(
+    ['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox'],
+    'readwrite',
+  )
   await Promise.all([
     ...petsData.map((record) => tx.objectStore('pets').put(record)),
     ...journalData.map((record) => tx.objectStore('journal').put(record)),
@@ -108,7 +117,9 @@ async function queueMutation(
 }
 
 export async function listPets() {
-  return (await (await getDb()).getAll('pets')).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  return (await (await getDb()).getAll('pets')).sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  )
 }
 
 export async function getPet(id: string) {
@@ -134,7 +145,10 @@ export async function getJournalEntry(id: string) {
   return (await getDb()).get('journal', id)
 }
 
-export async function saveJournalEntry(entry: JournalEntry, operation: 'create' | 'update' = 'create') {
+export async function saveJournalEntry(
+  entry: JournalEntry,
+  operation: 'create' | 'update' = 'create',
+) {
   const record = { ...entry, syncState: 'pending' as const, syncError: undefined }
   const db = await getDb()
   await db.put('journal', record)
@@ -147,7 +161,11 @@ export async function deleteJournalEntry(id: string) {
   const db = await getDb()
   const existing = await db.get('journal', id)
   if (!existing) return
-  const record: JournalEntry = { ...existing, deletedAt: new Date().toISOString(), syncState: 'pending' }
+  const record: JournalEntry = {
+    ...existing,
+    deletedAt: new Date().toISOString(),
+    syncState: 'pending',
+  }
   await db.put('journal', record)
   await queueMutation('journal', id, 'delete', record)
   notifyChanged()
@@ -174,7 +192,10 @@ export async function listReminders(petId: string) {
     .sort((a, b) => a.dueAt.localeCompare(b.dueAt))
 }
 
-export async function saveReminder(reminder: CareReminder, operation: 'create' | 'update' = 'create') {
+export async function saveReminder(
+  reminder: CareReminder,
+  operation: 'create' | 'update' = 'create',
+) {
   const record = { ...reminder, syncState: 'pending' as const }
   const db = await getDb()
   await db.put('reminders', record)
@@ -188,7 +209,11 @@ export async function completeReminder(id: string) {
   const existing = await db.get('reminders', id)
   if (!existing) return
   return saveReminder(
-    { ...existing, completedAt: existing.completedAt ? undefined : new Date().toISOString(), updatedAt: new Date().toISOString() },
+    {
+      ...existing,
+      completedAt: existing.completedAt ? undefined : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
     'update',
   )
 }
@@ -216,13 +241,18 @@ export async function getMediaForEntry(entryId: string) {
 }
 
 export async function listOutbox() {
-  return (await (await getDb()).getAll('outbox')).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+  return (await (await getDb()).getAll('outbox')).sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  )
 }
 
 export async function resetDatabaseForTests() {
   if (!activeDbPromise) await configureLocalOwner('test-user', false)
   const db = await getDb()
-  const tx = db.transaction(['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox'], 'readwrite')
+  const tx = db.transaction(
+    ['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox'],
+    'readwrite',
+  )
   await Promise.all([
     tx.objectStore('pets').clear(),
     tx.objectStore('journal').clear(),
@@ -246,12 +276,18 @@ export async function updateSyncResult(item: OutboxItem, success: boolean, error
   if (success) {
     await db.delete('outbox', item.id)
     const store = stores[item.entity]
-    const record = await db.get(store, item.entityId) as Record<string, unknown> | undefined
-    if (record) await db.put(store, { ...record, syncState: 'synced', syncError: undefined } as never)
+    const record = (await db.get(store, item.entityId)) as Record<string, unknown> | undefined
+    if (record)
+      await db.put(store, { ...record, syncState: 'synced', syncError: undefined } as never)
   } else {
-    await db.put('outbox', { ...item, status: 'failed', attemptCount: item.attemptCount + 1, error })
+    await db.put('outbox', {
+      ...item,
+      status: 'failed',
+      attemptCount: item.attemptCount + 1,
+      error,
+    })
     const store = stores[item.entity]
-    const record = await db.get(store, item.entityId) as Record<string, unknown> | undefined
+    const record = (await db.get(store, item.entityId)) as Record<string, unknown> | undefined
     if (record) await db.put(store, { ...record, syncState: 'failed', syncError: error } as never)
   }
   notifyChanged()
