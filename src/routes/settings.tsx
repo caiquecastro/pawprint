@@ -31,8 +31,8 @@ function SettingsRoute() {
           <div>
             <h2>Local-first memories</h2>
             <p>
-              New journal entries are stored on this device first, then synchronized when a
-              connection is available.
+              New journal entries are stored in this account’s private space on this device, then
+              synchronized when a connection is available.
             </p>
           </div>
         </section>
@@ -53,9 +53,9 @@ function SettingsRoute() {
             <ShieldCheck />
           </span>
           <div>
-            <h2>Private by default</h2>
+            <h2>Protected by your account</h2>
             <p>
-              This MVP is single-owner. Add authentication before sharing a production database.
+              Cloud records and photos are only returned when the signed-in account owns the pet.
             </p>
           </div>
         </section>

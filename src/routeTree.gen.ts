@@ -16,6 +16,7 @@ import { Route as ApiMediaRouteImport } from './routes/api.media'
 import { Route as ApiSyncRouteImport } from './routes/api.sync'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as PetsPetIdRouteImport } from './routes/pets.$petId'
+import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api.media.$'
 import { Route as PetsPetIdIndexRouteImport } from './routes/pets.$petId.index'
 import { Route as PetsPetIdCareRouteImport } from './routes/pets.$petId.care'
@@ -57,6 +58,11 @@ const ApiUploadsRoute = ApiUploadsRouteImport.update({
 const PetsPetIdRoute = PetsPetIdRouteImport.update({
   id: '/pets/$petId',
   path: '/pets/$petId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInSplatRoute = SignInSplatRouteImport.update({
+  id: '/sign-in/$',
+  path: '/sign-in/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMediaSplatRoute = ApiMediaSplatRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/api/sync': typeof ApiSyncRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/pets/$petId': typeof PetsPetIdRouteWithChildren
+  '/sign-in/$': typeof SignInSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/pets/$petId/care': typeof PetsPetIdCareRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/api/media': typeof ApiMediaRouteWithChildren
   '/api/sync': typeof ApiSyncRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/sign-in/$': typeof SignInSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/pets/$petId/care': typeof PetsPetIdCareRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/api/sync': typeof ApiSyncRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/pets/$petId': typeof PetsPetIdRouteWithChildren
+  '/sign-in/$': typeof SignInSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/pets/$petId/care': typeof PetsPetIdCareRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/api/sync'
     | '/api/uploads'
     | '/pets/$petId'
+    | '/sign-in/$'
     | '/api/media/$'
     | '/pets/$petId/care'
     | '/pets/$petId/health'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/api/media'
     | '/api/sync'
     | '/api/uploads'
+    | '/sign-in/$'
     | '/api/media/$'
     | '/pets/$petId/care'
     | '/pets/$petId/health'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/api/sync'
     | '/api/uploads'
     | '/pets/$petId'
+    | '/sign-in/$'
     | '/api/media/$'
     | '/pets/$petId/care'
     | '/pets/$petId/health'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   ApiSyncRoute: typeof ApiSyncRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   PetsPetIdRoute: typeof PetsPetIdRouteWithChildren
+  SignInSplatRoute: typeof SignInSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       path: '/pets/$petId'
       fullPath: '/pets/$petId'
       preLoaderRoute: typeof PetsPetIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in/$': {
+      id: '/sign-in/$'
+      path: '/sign-in/$'
+      fullPath: '/sign-in/$'
+      preLoaderRoute: typeof SignInSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/media/$': {
@@ -355,6 +375,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSyncRoute: ApiSyncRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   PetsPetIdRoute: PetsPetIdRouteWithChildren,
+  SignInSplatRoute: SignInSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

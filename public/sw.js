@@ -1,5 +1,12 @@
-const VERSION = 'pawprint-v2'
-const SHELL = ['/', '/setup', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png']
+const VERSION = 'pawprint-v3'
+const SHELL = [
+  '/',
+  '/sign-in',
+  '/setup',
+  '/manifest.webmanifest',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -35,7 +42,7 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           const copy = response.clone()
-          caches.open(VERSION).then((cache) => cache.put(request, copy))
+          event.waitUntil(caches.open(VERSION).then((cache) => cache.put(request, copy)))
           return response
         })
         .catch(
@@ -55,8 +62,11 @@ self.addEventListener('fetch', (event) => {
       (cached) =>
         cached ||
         fetch(request).then((response) => {
-          if (response.ok && ['style', 'script', 'image', 'font'].includes(request.destination))
-            caches.open(VERSION).then((cache) => cache.put(request, response.clone()))
+          if (response.ok && ['style', 'script', 'image', 'font'].includes(request.destination)) {
+            event.waitUntil(
+              caches.open(VERSION).then((cache) => cache.put(request, response.clone())),
+            )
+          }
           return response
         }),
     ),

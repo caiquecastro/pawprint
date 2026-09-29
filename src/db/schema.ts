@@ -1,21 +1,25 @@
 import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
-export const pets = sqliteTable('pets', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  species: text('species').notNull(),
-  breed: text('breed'),
-  birthDate: text('birth_date'),
-  approximateBirthDate: integer('approximate_birth_date', { mode: 'boolean' })
-    .notNull()
-    .default(false),
-  currentWeight: real('current_weight'),
-  weightUnit: text('weight_unit').notNull().default('kg'),
-  avatarObjectKey: text('avatar_object_key'),
-  ownerId: text('owner_id').notNull().default('single-owner'),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-})
+export const pets = sqliteTable(
+  'pets',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    species: text('species').notNull(),
+    breed: text('breed'),
+    birthDate: text('birth_date'),
+    approximateBirthDate: integer('approximate_birth_date', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    currentWeight: real('current_weight'),
+    weightUnit: text('weight_unit').notNull().default('kg'),
+    avatarObjectKey: text('avatar_object_key'),
+    ownerId: text('owner_id').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [index('pets_owner_idx').on(table.ownerId)],
+)
 
 export const journalEntries = sqliteTable(
   'journal_entries',
@@ -102,8 +106,13 @@ export const media = sqliteTable(
   ],
 )
 
-export const processedMutations = sqliteTable('processed_mutations', {
-  id: text('id').primaryKey(),
-  entityId: text('entity_id').notNull(),
-  processedAt: text('processed_at').notNull(),
-})
+export const processedMutations = sqliteTable(
+  'processed_mutations',
+  {
+    id: text('id').primaryKey(),
+    ownerId: text('owner_id').notNull(),
+    entityId: text('entity_id').notNull(),
+    processedAt: text('processed_at').notNull(),
+  },
+  (table) => [index('processed_mutations_owner_idx').on(table.ownerId)],
+)

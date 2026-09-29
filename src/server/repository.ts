@@ -3,34 +3,97 @@ import { drizzle } from 'drizzle-orm/d1'
 import { careReminders, journalEntries, measurements, pets, processedMutations } from '../db/schema'
 import type { CareReminder, JournalEntry, Measurement, OutboxItem, Pet } from '../lib/types'
 
+export class OwnershipError extends Error {
+  constructor() {
+    super('The requested record is not available.')
+    this.name = 'OwnershipError'
+  }
+}
+
 export class PawprintRepository {
   private db
-  constructor(database: D1Database) {
+
+  constructor(
+    database: D1Database,
+    private ownerId: string,
+  ) {
     this.db = drizzle(database)
   }
 
   async applyMutation(item: OutboxItem) {
+    const mutationId = `${this.ownerId}:${item.id}`
     const alreadyApplied = await this.db
       .select({ id: processedMutations.id })
       .from(processedMutations)
-      .where(eq(processedMutations.id, item.id))
+      .where(eq(processedMutations.id, mutationId))
       .get()
     if (alreadyApplied) return { duplicate: true }
     await this.write(item)
     await this.db
       .insert(processedMutations)
-      .values({ id: item.id, entityId: item.entityId, processedAt: new Date().toISOString() })
+      .values({
+        id: mutationId,
+        ownerId: this.ownerId,
+        entityId: item.entityId,
+        processedAt: new Date().toISOString(),
+      })
       .onConflictDoNothing()
     return { duplicate: false }
+  }
+
+  private async assertPetOwned(petId: string) {
+    const pet = await this.db
+      .select({ ownerId: pets.ownerId })
+      .from(pets)
+      .where(eq(pets.id, petId))
+      .get()
+    if (!pet || pet.ownerId !== this.ownerId) throw new OwnershipError()
+  }
+
+  private async assertJournalWritable(entryId: string, petId: string) {
+    const existing = await this.db
+      .select({ petId: journalEntries.petId })
+      .from(journalEntries)
+      .where(eq(journalEntries.id, entryId))
+      .get()
+    if (existing && existing.petId !== petId) throw new OwnershipError()
+    await this.assertPetOwned(petId)
+  }
+
+  private async assertMeasurementWritable(measurementId: string, petId: string) {
+    const existing = await this.db
+      .select({ petId: measurements.petId })
+      .from(measurements)
+      .where(eq(measurements.id, measurementId))
+      .get()
+    if (existing && existing.petId !== petId) throw new OwnershipError()
+    await this.assertPetOwned(petId)
+  }
+
+  private async assertReminderWritable(reminderId: string, petId: string) {
+    const existing = await this.db
+      .select({ petId: careReminders.petId })
+      .from(careReminders)
+      .where(eq(careReminders.id, reminderId))
+      .get()
+    if (existing && existing.petId !== petId) throw new OwnershipError()
+    await this.assertPetOwned(petId)
   }
 
   private async write(item: OutboxItem) {
     if (item.entity === 'pet') {
       const p = item.payload as Pet
+      const existing = await this.db
+        .select({ ownerId: pets.ownerId })
+        .from(pets)
+        .where(eq(pets.id, p.id))
+        .get()
+      if (existing && existing.ownerId !== this.ownerId) throw new OwnershipError()
       await this.db
         .insert(pets)
         .values({
           id: p.id,
+          ownerId: this.ownerId,
           name: p.name,
           species: p.species,
           breed: p.breed,
@@ -58,6 +121,7 @@ export class PawprintRepository {
         })
     } else if (item.entity === 'journal') {
       const e = item.payload as JournalEntry
+      await this.assertJournalWritable(e.id, e.petId)
       await this.db
         .insert(journalEntries)
         .values({
@@ -86,6 +150,7 @@ export class PawprintRepository {
         })
     } else if (item.entity === 'measurement') {
       const m = item.payload as Measurement
+      await this.assertMeasurementWritable(m.id, m.petId)
       await this.db
         .insert(measurements)
         .values({
@@ -114,6 +179,7 @@ export class PawprintRepository {
         })
     } else if (item.entity === 'reminder') {
       const r = item.payload as CareReminder
+      await this.assertReminderWritable(r.id, r.petId)
       await this.db
         .insert(careReminders)
         .values({
