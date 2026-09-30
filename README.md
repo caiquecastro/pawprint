@@ -31,7 +31,7 @@ npm run preview
 1. Create or reuse a D1 database named `pawprint-db` and an R2 bucket named `pawprint-photos`.
 2. The committed `database_id` targets Pawprint's production database. When deploying from another Cloudflare account, replace it with that account's D1 database ID.
 3. Run `npm run cf-typegen` after changing bindings.
-4. Add `CLERK_SECRET_KEY` and `CLERK_JWT_KEY` as Worker secrets. Make `VITE_CLERK_PUBLISHABLE_KEY` available to the build, and configure `CLERK_AUTHORIZED_PARTIES` with the production origin.
+4. Add `CLERK_SECRET_KEY` as a Worker secret. Make `VITE_CLERK_PUBLISHABLE_KEY` available to the build, and configure `CLERK_AUTHORIZED_PARTIES` with the production origin. `CLERK_JWT_KEY` is optional and enables networkless session-token verification.
 5. Apply the schema with `npm run db:migrate:remote`.
 6. Preview with `npm run preview`, then deploy with `npm run deploy`.
 
