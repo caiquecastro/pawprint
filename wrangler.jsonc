@@ -1,11 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "pawprint",
+  "name": "app",
   "compatibility_date": "2026-09-26",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
   "vars": {
-    "CLERK_AUTHORIZED_PARTIES": "https://pawprint.pawprint.workers.dev",
+    "CLERK_AUTHORIZED_PARTIES": "https://app.pawprint.workers.dev",
   },
   "secrets": {
     "required": ["CLERK_SECRET_KEY"],
