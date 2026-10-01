@@ -23,6 +23,16 @@ const entry = () => ({
   updatedAt: '2026-09-26T12:00:00.000Z',
 })
 
+const emptySnapshot = () =>
+  Response.json({
+    pets: [],
+    journal: [],
+    measurements: [],
+    reminders: [],
+    outings: [],
+    media: [],
+  })
+
 describe('offline outbox', () => {
   beforeEach(async () => {
     clearLocalOwner()
@@ -61,27 +71,36 @@ describe('offline outbox', () => {
 
   it('synchronizes a client UUID exactly once', async () => {
     await saveJournalEntry(entry(), 'create')
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ ok: true }))
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (_input, init) =>
+        init?.method === 'GET' ? emptySnapshot() : Response.json({ ok: true }),
+      )
     vi.stubGlobal('fetch', fetchMock)
     await syncOutbox(true)
     await syncOutbox(true)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1)
     expect(await listOutbox()).toHaveLength(0)
     expect((await getJournalEntry(entry().id))?.syncState).toBe('synced')
   })
 
   it('preserves failed changes and retries them', async () => {
     await saveJournalEntry(entry(), 'create')
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(Response.json({ message: 'Try later' }, { status: 503 }))
-      .mockResolvedValueOnce(Response.json({ ok: true }))
+    let postCount = 0
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+      if (init?.method === 'GET') return emptySnapshot()
+
+      postCount += 1
+      return postCount === 1
+        ? Response.json({ message: 'Try later' }, { status: 503 })
+        : Response.json({ ok: true })
+    })
     vi.stubGlobal('fetch', fetchMock)
     await syncOutbox(true)
     expect((await listOutbox())[0]?.status).toBe('failed')
     await syncOutbox(true)
     expect(await listOutbox()).toHaveLength(0)
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(2)
   })
 })
 
@@ -90,13 +109,18 @@ it('gives edits a new server revision after a successful sync', async () => {
   await configureLocalOwner('revision-test', false)
   await resetDatabaseForTests()
   await saveJournalEntry(entry())
-  const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ ok: true }))
+  const fetchMock = vi
+    .fn<typeof fetch>()
+    .mockImplementation(async (_input, init) =>
+      init?.method === 'GET' ? emptySnapshot() : Response.json({ ok: true }),
+    )
   vi.stubGlobal('fetch', fetchMock)
   await syncOutbox(true)
   await saveJournalEntry({ ...entry(), title: 'Later edit' }, 'update')
   await syncOutbox(true)
-  const first = JSON.parse(String(fetchMock.mock.calls[0][1]?.body))
-  const second = JSON.parse(String(fetchMock.mock.calls[1][1]?.body))
+  const posts = fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')
+  const first = JSON.parse(String(posts[0]?.[1]?.body))
+  const second = JSON.parse(String(posts[1]?.[1]?.body))
   expect(second.id).toBe(first.id)
   expect(second.revision).not.toBe(first.revision)
   expect(second.payload.title).toBe('Later edit')
@@ -110,10 +134,12 @@ it.each([true, false])(
     await configureLocalOwner(`in-flight-${success}`, false)
     await resetDatabaseForTests()
     await saveJournalEntry(entry())
-    let first = true
-    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => {
-      if (first) {
-        first = false
+    let firstPost = true
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+      if (init?.method === 'GET') return emptySnapshot()
+
+      if (firstPost) {
+        firstPost = false
         await saveJournalEntry({ ...entry(), title: 'Edited while syncing' }, 'update')
         return Response.json({ ok: success }, { status: success ? 200 : 503 })
       }
@@ -121,7 +147,7 @@ it.each([true, false])(
     })
     vi.stubGlobal('fetch', fetchMock)
     await syncOutbox(true)
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(2)
     expect((await getJournalEntry(entry().id))?.title).toBe('Edited while syncing')
     expect((await getJournalEntry(entry().id))?.syncState).toBe('synced')
     expect(await listOutbox()).toHaveLength(0)

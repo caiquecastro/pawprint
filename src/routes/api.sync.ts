@@ -8,6 +8,31 @@ import { OwnershipError, PawprintRepository } from '../server/repository'
 export const Route = createFileRoute('/api/sync')({
   server: {
     handlers: {
+      GET: async () => {
+        try {
+          const userId = await getAuthenticatedUserId()
+          if (!userId) {
+            return Response.json({ message: 'Sign in to download your records.' }, { status: 401 })
+          }
+          if (!env.DB) {
+            return Response.json({ message: 'Cloud sync is not configured yet.' }, { status: 503 })
+          }
+
+          const snapshot = await new PawprintRepository(env.DB, userId).getSnapshot()
+          return Response.json(snapshot)
+        } catch (error) {
+          console.error(
+            JSON.stringify({
+              event: 'sync_pull_failed',
+              message: error instanceof Error ? error.message : 'unknown',
+            }),
+          )
+          return Response.json(
+            { message: 'Cloud records could not be downloaded.' },
+            { status: 500 },
+          )
+        }
+      },
       POST: async ({ request }) => {
         try {
           const userId = await getAuthenticatedUserId()

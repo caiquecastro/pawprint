@@ -14,6 +14,7 @@ export type Pet = {
   createdAt: string
   updatedAt: string
   syncState?: SyncState
+  syncError?: string
 }
 
 export type JournalEntryType = 'memory' | 'health' | 'milestone' | 'routine' | 'mood'
@@ -46,6 +47,7 @@ export type Measurement = {
   updatedAt: string
   deletedAt?: string
   syncState?: SyncState
+  syncError?: string
 }
 
 export type CareReminder = {
@@ -60,6 +62,7 @@ export type CareReminder = {
   updatedAt: string
   deletedAt?: string
   syncState?: SyncState
+  syncError?: string
 }
 
 export type MediaRecord = {
@@ -91,6 +94,7 @@ export type Outing = {
   updatedAt: string
   deletedAt?: string
   syncState?: SyncState
+  syncError?: string
 }
 
 export type EntityKind = 'pet' | 'journal' | 'measurement' | 'reminder' | 'outing' | 'media'
@@ -107,4 +111,13 @@ export type OutboxItem = {
   attemptCount: number
   status: 'pending' | 'syncing' | 'failed'
   error?: string
+}
+
+export type SyncSnapshot = {
+  pets: Pet[]
+  journal: JournalEntry[]
+  measurements: Measurement[]
+  reminders: CareReminder[]
+  outings: Outing[]
+  media: MediaRecord[]
 }

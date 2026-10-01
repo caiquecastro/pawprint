@@ -29,14 +29,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       return
     }
     let cancelled = false
-    const initialize = async (ownerId: string) => {
+    const initialize = async (ownerId: string, synchronize = false) => {
       await configureLocalOwner(ownerId)
+      if (synchronize) await syncOutbox()
       if (!cancelled) setLocalOwner(ownerId)
     }
 
     if (isLoaded && isSignedIn && userId) {
       localStorage.setItem(LAST_OWNER_KEY, userId)
-      void initialize(userId)
+      void initialize(userId, navigatorSafeOnline())
     } else if (isLoaded) {
       clearLocalOwner()
       localStorage.removeItem(LAST_OWNER_KEY)
