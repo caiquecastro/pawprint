@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Bell, Check, Clock3, Plus, RotateCcw, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -66,6 +66,13 @@ function CareRoute() {
           <Plus size={18} /> Add
         </button>
       </header>
+      <Link className="walk-care-link card" to="/pets/$petId/walks" params={{ petId }}>
+        <div>
+          <h2>Walks & potty</h2>
+          <p>Start a walk, log a potty break, or see the history.</p>
+        </div>
+        <span aria-hidden>→</span>
+      </Link>
       <section className="section-block">
         <div className="section-heading">
           <div>

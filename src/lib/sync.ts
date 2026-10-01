@@ -12,24 +12,32 @@ export function syncOutbox(force = false) {
 
 async function runSync(force: boolean) {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return
-  const items = await listOutbox()
-  for (const item of items) {
-    if (item.status === 'failed' && !force) continue
-    try {
-      const response = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(item),
-      })
-      if (!response.ok) {
-        const details = (await response
-          .json()
-          .catch(() => ({ message: 'Sync is temporarily unavailable.' }))) as { message?: string }
-        throw new Error(details.message || 'Sync is temporarily unavailable.')
+  const attempted = new Set<string>()
+  while (true) {
+    const items = (await listOutbox()).filter(
+      (item) =>
+        (force || item.status !== 'failed') &&
+        !attempted.has(`${item.id}:${item.revision ?? 'legacy'}`),
+    )
+    if (items.length === 0) break
+    for (const item of items) {
+      attempted.add(`${item.id}:${item.revision ?? 'legacy'}`)
+      try {
+        const response = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(item),
+        })
+        if (!response.ok) {
+          const details = (await response
+            .json()
+            .catch(() => ({ message: 'Sync is temporarily unavailable.' }))) as { message?: string }
+          throw new Error(details.message || 'Sync is temporarily unavailable.')
+        }
+        await updateSyncResult(item, true)
+      } catch (error) {
+        await updateSyncResult(item, false, error instanceof Error ? error.message : 'Sync failed.')
       }
-      await updateSyncResult(item, true)
-    } catch (error) {
-      await updateSyncResult(item, false, error instanceof Error ? error.message : 'Sync failed.')
     }
   }
   await syncMedia(force)

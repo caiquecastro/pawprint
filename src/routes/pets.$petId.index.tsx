@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { AppShell } from '../components/AppShell'
 import { EmptyState } from '../components/EmptyState'
 import { JournalComposer } from '../components/JournalComposer'
+import { WalkTracker } from '../components/WalkTracker'
 import { SyncBadge } from '../components/SyncBadge'
 import { daysTogether, formatDate, petAge } from '../lib/format'
 import { completeReminder, saveJournalEntry } from '../lib/local-db'
@@ -71,6 +72,8 @@ function TodayRoute() {
         <small>Photo, memory, milestone…</small>
         <ArrowRight size={20} />
       </button>
+
+      {pet.species === 'dog' && <WalkTracker petId={petId} />}
 
       <section className="mood-card card">
         <div>

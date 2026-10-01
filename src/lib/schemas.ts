@@ -46,14 +46,67 @@ export const reminderSchema = z.object({
   recurrenceRule: z.enum(['', 'daily', 'weekly', 'monthly']).optional(),
 })
 
-export const syncMutationSchema = z.object({
-  id: z.string().regex(/^(pet|journal|measurement|reminder):[0-9a-f-]{36}$/),
-  entity: z.enum(['pet', 'journal', 'measurement', 'reminder']),
-  entityId: z.uuid(),
-  operation: z.enum(['create', 'update', 'delete']),
-  payload: z.record(z.string(), z.unknown()),
-  createdAt: z.iso.datetime(),
-})
+export const syncMutationSchema = z
+  .object({
+    id: z.string().regex(/^(pet|journal|measurement|reminder|outing):[0-9a-f-]{36}$/),
+    revision: z.uuid().optional(),
+    entity: z.enum(['pet', 'journal', 'measurement', 'reminder', 'outing']),
+    entityId: z.uuid(),
+    operation: z.enum(['create', 'update', 'delete']),
+    payload: z.record(z.string(), z.unknown()),
+    createdAt: z.iso.datetime(),
+  })
+  .refine(
+    (item) => item.id === `${item.entity}:${item.entityId}` && item.payload.id === item.entityId,
+    {
+      message: 'The change must refer to the same record.',
+    },
+  )
+
+export const outingSchema = z
+  .object({
+    id: z.uuid(),
+    petId: z.uuid(),
+    kind: z.enum(['walk', 'potty']),
+    startedAt: z.iso.datetime(),
+    endedAt: z.iso.datetime().nullable(),
+    peeCount: z.number().int().min(0).max(999).nullable(),
+    poopCount: z.number().int().min(0).max(999).nullable(),
+    notes: z.string().trim().max(6000),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+    deletedAt: z.iso.datetime().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.endedAt && Date.parse(value.endedAt) < Date.parse(value.startedAt)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'End time must be after the start.',
+        path: ['endedAt'],
+      })
+    }
+    if (
+      value.kind === 'walk' &&
+      value.endedAt !== null &&
+      Date.parse(value.endedAt) === Date.parse(value.startedAt)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'A walk needs a positive duration.',
+        path: ['endedAt'],
+      })
+    }
+    if (
+      value.kind === 'potty' &&
+      (value.endedAt !== value.startedAt || !(value.peeCount || value.poopCount))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Record at least one pee or poop for a potty break.',
+        path: ['peeCount'],
+      })
+    }
+  })
 
 export function parseRecurrence(value?: string) {
   if (!value) return null

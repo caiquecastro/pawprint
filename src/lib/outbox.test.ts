@@ -84,3 +84,47 @@ describe('offline outbox', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
+
+it('gives edits a new server revision after a successful sync', async () => {
+  clearLocalOwner()
+  await configureLocalOwner('revision-test', false)
+  await resetDatabaseForTests()
+  await saveJournalEntry(entry())
+  const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ ok: true }))
+  vi.stubGlobal('fetch', fetchMock)
+  await syncOutbox(true)
+  await saveJournalEntry({ ...entry(), title: 'Later edit' }, 'update')
+  await syncOutbox(true)
+  const first = JSON.parse(String(fetchMock.mock.calls[0][1]?.body))
+  const second = JSON.parse(String(fetchMock.mock.calls[1][1]?.body))
+  expect(second.id).toBe(first.id)
+  expect(second.revision).not.toBe(first.revision)
+  expect(second.payload.title).toBe('Later edit')
+  vi.unstubAllGlobals()
+})
+
+it.each([true, false])(
+  'preserves and sends edits made during an in-flight request (success: %s)',
+  async (success) => {
+    clearLocalOwner()
+    await configureLocalOwner(`in-flight-${success}`, false)
+    await resetDatabaseForTests()
+    await saveJournalEntry(entry())
+    let first = true
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => {
+      if (first) {
+        first = false
+        await saveJournalEntry({ ...entry(), title: 'Edited while syncing' }, 'update')
+        return Response.json({ ok: success }, { status: success ? 200 : 503 })
+      }
+      return Response.json({ ok: true })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    await syncOutbox(true)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect((await getJournalEntry(entry().id))?.title).toBe('Edited while syncing')
+    expect((await getJournalEntry(entry().id))?.syncState).toBe('synced')
+    expect(await listOutbox()).toHaveLength(0)
+    vi.unstubAllGlobals()
+  },
+)

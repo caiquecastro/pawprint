@@ -22,6 +22,7 @@ import { Route as PetsPetIdIndexRouteImport } from './routes/pets.$petId.index'
 import { Route as PetsPetIdCareRouteImport } from './routes/pets.$petId.care'
 import { Route as PetsPetIdHealthRouteImport } from './routes/pets.$petId.health'
 import { Route as PetsPetIdJournalRouteImport } from './routes/pets.$petId.journal'
+import { Route as PetsPetIdWalksRouteImport } from './routes/pets.$petId.walks'
 import { Route as PetsPetIdJournalIndexRouteImport } from './routes/pets.$petId.journal.index'
 import { Route as PetsPetIdJournalEntryIdRouteImport } from './routes/pets.$petId.journal.$entryId'
 
@@ -90,6 +91,11 @@ const PetsPetIdJournalRoute = PetsPetIdJournalRouteImport.update({
   path: '/journal',
   getParentRoute: () => PetsPetIdRoute,
 } as any)
+const PetsPetIdWalksRoute = PetsPetIdWalksRouteImport.update({
+  id: '/walks',
+  path: '/walks',
+  getParentRoute: () => PetsPetIdRoute,
+} as any)
 const PetsPetIdJournalIndexRoute = PetsPetIdJournalIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/pets/$petId/care': typeof PetsPetIdCareRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
   '/pets/$petId/journal': typeof PetsPetIdJournalRouteWithChildren
+  '/pets/$petId/walks': typeof PetsPetIdWalksRoute
   '/pets/$petId/': typeof PetsPetIdIndexRoute
   '/pets/$petId/journal/$entryId': typeof PetsPetIdJournalEntryIdRoute
   '/pets/$petId/journal/': typeof PetsPetIdJournalIndexRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/api/media/$': typeof ApiMediaSplatRoute
   '/pets/$petId/care': typeof PetsPetIdCareRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
+  '/pets/$petId/walks': typeof PetsPetIdWalksRoute
   '/pets/$petId': typeof PetsPetIdIndexRoute
   '/pets/$petId/journal/$entryId': typeof PetsPetIdJournalEntryIdRoute
   '/pets/$petId/journal': typeof PetsPetIdJournalIndexRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/pets/$petId/care': typeof PetsPetIdCareRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
   '/pets/$petId/journal': typeof PetsPetIdJournalRouteWithChildren
+  '/pets/$petId/walks': typeof PetsPetIdWalksRoute
   '/pets/$petId/': typeof PetsPetIdIndexRoute
   '/pets/$petId/journal/$entryId': typeof PetsPetIdJournalEntryIdRoute
   '/pets/$petId/journal/': typeof PetsPetIdJournalIndexRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/pets/$petId/care'
     | '/pets/$petId/health'
     | '/pets/$petId/journal'
+    | '/pets/$petId/walks'
     | '/pets/$petId/'
     | '/pets/$petId/journal/$entryId'
     | '/pets/$petId/journal/'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/api/media/$'
     | '/pets/$petId/care'
     | '/pets/$petId/health'
+    | '/pets/$petId/walks'
     | '/pets/$petId'
     | '/pets/$petId/journal/$entryId'
     | '/pets/$petId/journal'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/pets/$petId/care'
     | '/pets/$petId/health'
     | '/pets/$petId/journal'
+    | '/pets/$petId/walks'
     | '/pets/$petId/'
     | '/pets/$petId/journal/$entryId'
     | '/pets/$petId/journal/'
@@ -307,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PetsPetIdJournalRouteImport
       parentRoute: typeof PetsPetIdRoute
     }
+    '/pets/$petId/walks': {
+      id: '/pets/$petId/walks'
+      path: '/walks'
+      fullPath: '/pets/$petId/walks'
+      preLoaderRoute: typeof PetsPetIdWalksRouteImport
+      parentRoute: typeof PetsPetIdRoute
+    }
     '/pets/$petId/journal/': {
       id: '/pets/$petId/journal/'
       path: '/'
@@ -353,6 +372,7 @@ interface PetsPetIdRouteChildren {
   PetsPetIdCareRoute: typeof PetsPetIdCareRoute
   PetsPetIdHealthRoute: typeof PetsPetIdHealthRoute
   PetsPetIdJournalRoute: typeof PetsPetIdJournalRouteWithChildren
+  PetsPetIdWalksRoute: typeof PetsPetIdWalksRoute
   PetsPetIdIndexRoute: typeof PetsPetIdIndexRoute
 }
 
@@ -360,6 +380,7 @@ const PetsPetIdRouteChildren: PetsPetIdRouteChildren = {
   PetsPetIdCareRoute: PetsPetIdCareRoute,
   PetsPetIdHealthRoute: PetsPetIdHealthRoute,
   PetsPetIdJournalRoute: PetsPetIdJournalRouteWithChildren,
+  PetsPetIdWalksRoute: PetsPetIdWalksRoute,
   PetsPetIdIndexRoute: PetsPetIdIndexRoute,
 }
 

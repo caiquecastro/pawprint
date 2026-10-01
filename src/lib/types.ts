@@ -78,11 +78,27 @@ export type MediaRecord = {
   error?: string
 }
 
-export type EntityKind = 'pet' | 'journal' | 'measurement' | 'reminder' | 'media'
+export type Outing = {
+  id: string
+  petId: string
+  kind: 'walk' | 'potty'
+  startedAt: string
+  endedAt: string | null
+  peeCount: number | null
+  poopCount: number | null
+  notes: string
+  createdAt: string
+  updatedAt: string
+  deletedAt?: string
+  syncState?: SyncState
+}
+
+export type EntityKind = 'pet' | 'journal' | 'measurement' | 'reminder' | 'outing' | 'media'
 export type MutationKind = 'create' | 'update' | 'delete'
 
 export type OutboxItem = {
   id: string
+  revision?: string
   entity: EntityKind
   entityId: string
   operation: MutationKind

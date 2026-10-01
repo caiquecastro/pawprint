@@ -1,6 +1,14 @@
-import { eq } from 'drizzle-orm'
+import { eq, lte } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/d1'
-import { careReminders, journalEntries, measurements, pets, processedMutations } from '../db/schema'
+import {
+  careReminders,
+  journalEntries,
+  measurements,
+  pets,
+  processedMutations,
+  outings,
+} from '../db/schema'
+import { outingSchema } from '../lib/schemas'
 import type { CareReminder, JournalEntry, Measurement, OutboxItem, Pet } from '../lib/types'
 
 export class OwnershipError extends Error {
@@ -21,7 +29,7 @@ export class PawprintRepository {
   }
 
   async applyMutation(item: OutboxItem) {
-    const mutationId = `${this.ownerId}:${item.id}`
+    const mutationId = `${this.ownerId}:${item.id}${item.revision ? `:${item.revision}` : ''}`
     const alreadyApplied = await this.db
       .select({ id: processedMutations.id })
       .from(processedMutations)
@@ -176,6 +184,33 @@ export class PawprintRepository {
             updatedAt: m.updatedAt,
             deletedAt: m.deletedAt,
           },
+        })
+    } else if (item.entity === 'outing') {
+      const outing = outingSchema.parse(item.payload)
+      const existing = await this.db
+        .select({ petId: outings.petId, kind: outings.kind })
+        .from(outings)
+        .where(eq(outings.id, outing.id))
+        .get()
+      if (existing && (existing.petId !== outing.petId || existing.kind !== outing.kind)) {
+        throw new OwnershipError()
+      }
+      await this.assertPetOwned(outing.petId)
+      await this.db
+        .insert(outings)
+        .values(outing)
+        .onConflictDoUpdate({
+          target: outings.id,
+          set: {
+            startedAt: outing.startedAt,
+            endedAt: outing.endedAt,
+            peeCount: outing.peeCount,
+            poopCount: outing.poopCount,
+            notes: outing.notes,
+            updatedAt: outing.updatedAt,
+            deletedAt: outing.deletedAt ?? null,
+          },
+          setWhere: lte(outings.updatedAt, outing.updatedAt),
         })
     } else if (item.entity === 'reminder') {
       const r = item.payload as CareReminder

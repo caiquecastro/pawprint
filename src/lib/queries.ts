@@ -1,5 +1,12 @@
 import { queryOptions } from '@tanstack/react-query'
-import { getJournalEntry, getPet, listJournal, listMeasurements, listReminders } from './local-db'
+import {
+  getJournalEntry,
+  getPet,
+  listJournal,
+  listMeasurements,
+  listReminders,
+  listOutings,
+} from './local-db'
 
 export const petQuery = (petId: string) =>
   queryOptions({
@@ -29,5 +36,12 @@ export const remindersQuery = (petId: string) =>
   queryOptions({
     queryKey: ['reminders', petId],
     queryFn: () => listReminders(petId),
+    enabled: typeof window !== 'undefined',
+  })
+
+export const outingsQuery = (petId: string) =>
+  queryOptions({
+    queryKey: ['outings', petId],
+    queryFn: () => listOutings(petId),
     enabled: typeof window !== 'undefined',
   })
