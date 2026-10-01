@@ -110,7 +110,10 @@ export function AppShell({ petId, children }: { petId: string; children: React.R
             key={item.label}
             {...item}
             petId={petId}
-            active={path.startsWith(item.to.replace('$petId', petId))}
+            active={
+              path.startsWith(item.to.replace('$petId', petId)) ||
+              (item.label === 'Care' && path === `/pets/${petId}/walks`)
+            }
           />
         ))}
       </nav>

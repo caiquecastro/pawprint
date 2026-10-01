@@ -116,3 +116,23 @@ export const processedMutations = sqliteTable(
   },
   (table) => [index('processed_mutations_owner_idx').on(table.ownerId)],
 )
+
+export const outings = sqliteTable(
+  'outings',
+  {
+    id: text('id').primaryKey(),
+    petId: text('pet_id')
+      .notNull()
+      .references(() => pets.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(),
+    startedAt: text('started_at').notNull(),
+    endedAt: text('ended_at'),
+    peeCount: integer('pee_count'),
+    poopCount: integer('poop_count'),
+    notes: text('notes').notNull().default(''),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    deletedAt: text('deleted_at'),
+  },
+  (table) => [index('outings_pet_started_idx').on(table.petId, table.startedAt)],
+)

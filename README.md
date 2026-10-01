@@ -39,10 +39,18 @@ All D1 and R2 access stays in authenticated Worker-only route handlers (`/api/sy
 
 ## Offline model
 
-IndexedDB stores pets, journal entries, health measurements, care reminders, media blobs, and an explicit mutation outbox in a database scoped to the signed-in Clerk user. Client-generated UUIDs and owner-scoped D1 mutation IDs make retries idempotent. The sync service runs at startup and when connectivity returns; failed changes remain editable and can be retried from the status control. Existing pre-auth local data is claimed once by the first account that signs in after upgrading.
+IndexedDB stores pets, journal entries, health measurements, care reminders, walks and potty breaks, media blobs, and an explicit mutation outbox in a database scoped to the signed-in Clerk user. Client-generated UUIDs and owner-scoped D1 mutation revisions make retries idempotent. Each edit receives a new revision; acknowledgements only clear the revision that was sent, so in-flight edits remain queued. The sync service runs at startup and when connectivity returns; failed changes remain editable and can be retried from the status control. Existing pre-auth local data is claimed once by the first account that signs in after upgrading.
 
 The service worker caches the application shell and safe static assets. It deliberately excludes `/api/*` and all non-GET requests.
 
 ## Current MVP boundary
 
 Pawprint is authenticated, single-owner, and local-first. Before a public launch, add background media compression/upload progress, Web Push, account recovery UX validation, and automated browser coverage against deployed preview bindings. See `STATUS.md` for milestone details.
+
+## Walks and potty breaks
+
+Dogs have quick walk and potty controls on Today. Care links to the full Walks & potty history for any pet. Start a walk to save its start time immediately; the elapsed timer recovers after reopening the app. Finish saves the walk before opening its editable details. Forgotten timers can be corrected there or discarded while active. You can also log past walks and potty breaks, edit notes and counts, or delete a record.
+
+Pee and poop counts are optional: blank means not recorded, while zero explicitly means none. Quick pee/poop buttons create standalone potty breaks with undo. Counts recorded during a walk belong to that walk; the last-record labels show the walk start time, not an exact potty event time. Today and seven-day totals include completed walks grouped by their local start date. Only one active walk per pet is allowed on a device. GPS, distance, and cross-device restoration are not included; the existing sync uploads local changes without downloading records from other devices.
+
+Apply `migrations/0002_outings.sql` with the normal D1 migration commands before deploying this feature. The IndexedDB upgrade preserves existing records and queued changes.
