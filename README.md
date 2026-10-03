@@ -39,7 +39,7 @@ All D1 and R2 access stays in authenticated Worker-only route handlers (`/api/sy
 
 ### Deployments from GitHub Actions
 
-The CI workflow runs `npm run check` on pushes and pull requests. After checks pass, pushes to `main` build the application, apply pending production D1 migrations, and deploy the `app` Worker using the committed Cloudflare configuration. Production deployments run one at a time; an active deployment is not canceled by a newer push.
+The CI workflow runs `npm run check` on pushes and pull requests. After checks pass, pushes to `main` build the application, apply pending production D1 migrations, and deploy the `app` Worker using the committed Cloudflare configuration. Production deployments run one at a time; an active deployment is not canceled by a newer push. After building, each deployment checks the latest `main` commit and skips both migrations and the Worker upload if its commit is stale.
 
 Configure these GitHub Actions values in the repository settings or its `production` environment:
 

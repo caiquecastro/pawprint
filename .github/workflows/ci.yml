@@ -73,8 +73,24 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Check commit is still current main
+        id: deployment
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin main
+          latest_sha=$(git rev-parse FETCH_HEAD)
+
+          if [ "$GITHUB_SHA" = "$latest_sha" ]; then
+            echo "is_current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping deployment because this commit is no longer the current main."
+          fi
+
       - name: Apply production database migrations
+        if: steps.deployment.outputs.is_current == 'true'
         run: npm run db:migrate:remote
 
       - name: Deploy Worker
+        if: steps.deployment.outputs.is_current == 'true'
         run: npx --no-install wrangler deploy
