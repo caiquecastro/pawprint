@@ -17,19 +17,32 @@ function JournalDetail() {
   const entry = useQuery(journalEntryQuery(entryId)).data
   const [editing, setEditing] = useState(false)
   const [confirming, setConfirming] = useState(false)
-  if (!entry) return <div className="launch-screen">Opening this page…</div>
+  if (!entry)
+    return (
+      <div className="min-h-svh grid place-content-center justify-items-center text-ink-soft gap-4">
+        Opening this page…
+      </div>
+    )
   return (
     <AppShell petId={petId}>
-      <div className="detail-toolbar">
-        <Link to="/pets/$petId/journal" params={{ petId }}>
+      <div className="min-h-12.5 flex justify-between items-center">
+        <Link
+          className="flex items-center font-extrabold gap-[0.4rem]"
+          to="/pets/$petId/journal"
+          params={{ petId }}
+        >
           <ArrowLeft size={19} /> Journal
         </Link>
-        <div>
-          <button className="icon-button" onClick={() => setEditing(true)} aria-label="Edit moment">
+        <div className="flex items-center gap-2">
+          <button
+            className="inline-grid place-items-center rounded-full bg-transparent cursor-pointer p-0 size-11 border-0 hover:bg-[#e8ecee]"
+            onClick={() => setEditing(true)}
+            aria-label="Edit moment"
+          >
             <Pencil size={18} />
           </button>
           <button
-            className="icon-button danger"
+            className="inline-grid place-items-center rounded-full bg-transparent cursor-pointer text-[#a03d30] p-0 size-11 border-0 hover:bg-[#e8ecee]"
             onClick={() => setConfirming(true)}
             aria-label="Delete moment"
           >
@@ -37,10 +50,19 @@ function JournalDetail() {
           </button>
         </div>
       </div>
-      <article className="entry-detail">
-        {entry.photoUrl && <img className="entry-photo" src={entry.photoUrl} alt={entry.title} />}
-        <p className="entry-meta">
-          <span className={`type-dot ${entry.type}`} />
+      <article className="w-[min(100%,_720px)] my-4 mx-auto">
+        {entry.photoUrl && (
+          <img
+            className="w-full max-h-[55vh] object-cover rounded-[26px_26px_20px_20px] mb-[1.4rem]"
+            src={entry.photoUrl}
+            alt={entry.title}
+          />
+        )}
+        <p className="flex items-center mb-[0.2rem] text-[#687586] text-[0.7rem] font-extrabold tracking-[0.055em] uppercase gap-[0.38rem]">
+          <span
+            className="data-[type=health]:bg-sage data-[type=health]:outline-sage data-[type=milestone]:bg-sunshine data-[type=milestone]:outline-sunshine-deep data-[type=routine]:bg-sky data-[type=routine]:outline-[#5d94a1] rounded-full bg-coral outline-0 size-[9px]"
+            data-type={entry.type}
+          />
           {entry.type} ·{' '}
           {formatDate(entry.occurredAt, {
             weekday: 'long',
@@ -49,27 +71,41 @@ function JournalDetail() {
             year: 'numeric',
           })}
         </p>
-        <h1>{entry.title}</h1>
-        {entry.mood && <p className="mood-label">Felt {entry.mood}</p>}
-        <p className="entry-body">{entry.body}</p>
+        <h1 className="mt-[0.8rem] mb-4 mx-0">{entry.title}</h1>
+        {entry.mood && (
+          <p className="inline-block rounded-full bg-[#fff2c2] text-[0.8rem] py-[0.35rem] px-[0.7rem]">
+            Felt {entry.mood}
+          </p>
+        )}
+        <p className="whitespace-pre-wrap font-serif text-[1.12rem] leading-[1.8]">{entry.body}</p>
         <SyncBadge state={entry.syncState} />
       </article>
       {confirming && (
-        <div className="confirm-backdrop" role="presentation">
+        <div
+          className="fixed z-80 inset-0 grid place-items-center bg-[rgba(20,_35,_59,_0.52)] p-4"
+          role="presentation"
+        >
           <div
-            className="confirm-dialog"
+            className="w-[min(100%,_420px)] rounded-[22px] bg-white shadow-card p-[1.3rem]"
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="delete-title"
           >
-            <h2 id="delete-title">Remove this moment?</h2>
-            <p>It will disappear from the journal and sync the deletion when you’re online.</p>
-            <div>
-              <button className="secondary-button" onClick={() => setConfirming(false)}>
+            <h2 className="mb-2" id="delete-title">
+              Remove this moment?
+            </h2>
+            <p className="text-ink-soft">
+              It will disappear from the journal and sync the deletion when you’re online.
+            </p>
+            <div className="flex justify-end gap-[0.6rem]">
+              <button
+                className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-white py-[0.6rem] px-4 gap-[0.45rem] border border-line"
+                onClick={() => setConfirming(false)}
+              >
                 Keep it
               </button>
               <button
-                className="danger-button"
+                className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-[#a03d30] text-white py-[0.6rem] px-4 gap-[0.45rem] border border-[#a03d30]"
                 onClick={async () => {
                   await deleteJournalEntry(entry.id)
                   await navigate({ to: '/pets/$petId/journal', params: { petId } })

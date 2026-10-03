@@ -46,10 +46,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <a className="skip-link" href="#main-content">
+        <a
+          className="fixed z-1000 left-4 top-[-5rem] bg-ink text-white rounded-[10px] py-[0.7rem] px-4 focus:top-4"
+          href="#main-content"
+        >
           Skip to content
         </a>
-        <ClerkProvider signInUrl="/sign-in">
+        <ClerkProvider signInUrl="/sign-in" appearance={{ cssLayerName: 'clerk' }}>
           <AppProviders>{children}</AppProviders>
         </ClerkProvider>
         <Scripts />

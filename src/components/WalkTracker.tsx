@@ -77,26 +77,36 @@ export function WalkTracker({
   }
 
   return (
-    <section className="walk-card card" aria-label="Walks and potty breaks">
-      <div className="section-heading">
+    <section
+      className="bg-[#f8fbf6] rounded-card shadow-panel my-[1.2rem] mx-0 p-[clamp(1rem,_4vw,_1.5rem)] border border-[rgba(20,_35,_59,_0.08)]"
+      aria-label="Walks and potty breaks"
+    >
+      <div className="flex items-end justify-between mb-[0.85rem] gap-4">
         <div>
-          <p className="eyebrow">
+          <p className="flex items-center mb-[0.45rem] text-[#67717e] text-[0.72rem] font-extrabold tracking-[0.14em] uppercase gap-[0.4rem]">
             <Footprints size={15} /> Everyday adventures
           </p>
-          <h2>{active ? 'Out for a walk' : 'Walks & potty'}</h2>
+          <h2 className="m-0">{active ? 'Out for a walk' : 'Walks & potty'}</h2>
         </div>
         {historyLink && (
-          <Link to="/pets/$petId/walks" params={{ petId }}>
+          <Link
+            className="inline-flex items-center bg-transparent text-[#425468] text-[0.82rem] font-extrabold underline underline-offset-3 cursor-pointer py-[0.4rem] px-0 gap-[0.3rem] border-0"
+            to="/pets/$petId/walks"
+            params={{ petId }}
+          >
             History <ArrowRight size={15} />
           </Link>
         )}
       </div>
       {active ? (
-        <div className="active-walk">
-          <p className="walk-timer" aria-label="Elapsed walk time">
+        <div>
+          <p
+            className="mt-3 mb-1 text-[clamp(3rem,_14vw,_4.5rem)] tabular-nums leading-[1.1] tracking-[-0.05em] mx-0"
+            aria-label="Elapsed walk time"
+          >
             {elapsedWalk(active.startedAt, now)}
           </p>
-          <p className="outing-hint">
+          <p className="text-ink-soft text-[0.82rem]">
             Started{' '}
             {formatDate(active.startedAt, {
               month: 'short',
@@ -106,24 +116,27 @@ export function WalkTracker({
             })}
             . You can close the app and come back.
           </p>
-          <div className="potty-counters">
+          <div className="grid grid-cols-2 my-4 mx-0 gap-[0.8rem]">
             {(['peeCount', 'poopCount'] as const).map((field) => {
               const label = field === 'peeCount' ? 'Pee' : 'Poop'
               return (
-                <div className="potty-counter" key={field}>
-                  <p>
-                    {label}: <strong aria-live="polite">{active[field] ?? 'Not recorded'}</strong>
+                <div className="rounded-[16px] bg-cream p-[0.85rem] border border-line" key={field}>
+                  <p className="text-[0.85rem]">
+                    {label}:{' '}
+                    <strong className="block" aria-live="polite">
+                      {active[field] ?? 'Not recorded'}
+                    </strong>
                   </p>
                   <button
-                    className="secondary-button"
+                    className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-white py-[0.6rem] px-4 gap-[0.45rem] border border-line"
                     disabled={busy || (active[field] ?? 0) >= 999}
                     onClick={() => void perform(() => changeCount(field, (active[field] ?? 0) + 1))}
                   >
                     {label} +1
                   </button>
-                  <div className="outing-actions">
+                  <div className="flex flex-wrap items-center gap-[0.65rem]">
                     <button
-                      className="text-link"
+                      className="inline-flex items-center bg-transparent text-[#425468] text-[0.82rem] font-extrabold underline underline-offset-3 cursor-pointer min-h-11 py-[0.4rem] px-0 gap-[0.3rem] border-0"
                       disabled={busy}
                       onClick={() => void perform(() => changeCount(field, 0))}
                     >
@@ -131,7 +144,7 @@ export function WalkTracker({
                     </button>
                     {active[field] !== null && (
                       <button
-                        className="text-link"
+                        className="inline-flex items-center bg-transparent text-[#425468] text-[0.82rem] font-extrabold underline underline-offset-3 cursor-pointer min-h-11 py-[0.4rem] px-0 gap-[0.3rem] border-0"
                         disabled={busy}
                         onClick={() => void perform(() => changeCount(field, null))}
                       >
@@ -145,7 +158,7 @@ export function WalkTracker({
           </div>
           {undoCount?.id === active.id && (
             <button
-              className="text-link"
+              className="inline-flex items-center bg-transparent text-[#425468] text-[0.82rem] font-extrabold underline underline-offset-3 cursor-pointer min-h-11 py-[0.4rem] px-0 gap-[0.3rem] border-0"
               disabled={busy}
               onClick={() =>
                 void perform(async () => {
@@ -157,9 +170,9 @@ export function WalkTracker({
               Undo last {undoCount.field === 'peeCount' ? 'pee' : 'poop'} change
             </button>
           )}
-          <div className="outing-actions">
+          <div className="flex flex-wrap items-center gap-[0.65rem]">
             <button
-              className="primary-button"
+              className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-sunshine py-[0.6rem] px-4 gap-[0.45rem] border border-[#d1a51a] disabled:opacity-45 disabled:cursor-not-allowed"
               disabled={busy}
               onClick={() =>
                 void perform(async () => {
@@ -171,23 +184,27 @@ export function WalkTracker({
             >
               Finish walk
             </button>
-            <button className="text-link" disabled={busy} onClick={() => setDiscard(true)}>
+            <button
+              className="inline-flex items-center bg-transparent text-[#425468] text-[0.82rem] font-extrabold underline underline-offset-3 cursor-pointer min-h-11 py-[0.4rem] px-0 gap-[0.3rem] border-0"
+              disabled={busy}
+              onClick={() => setDiscard(true)}
+            >
               Discard walk
             </button>
           </div>
           {discard && (
-            <div className="outing-delete-confirm">
+            <div className="rounded-[14px] my-4 mx-0 p-4 border border-[#e6b6aa]">
               <p>Discard this walk and its potty counts?</p>
-              <div className="outing-actions">
+              <div className="flex flex-wrap items-center gap-[0.65rem]">
                 <button
-                  className="secondary-button"
+                  className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-white py-[0.6rem] px-4 gap-[0.45rem] border border-line"
                   disabled={busy}
                   onClick={() => setDiscard(false)}
                 >
                   Keep walking
                 </button>
                 <button
-                  className="danger-button"
+                  className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-[#a03d30] text-white py-[0.6rem] px-4 gap-[0.45rem] border border-[#a03d30]"
                   disabled={busy}
                   onClick={() =>
                     void perform(async () => {
@@ -205,16 +222,17 @@ export function WalkTracker({
         </div>
       ) : (
         <>
-          <p className="walk-today">
-            <strong>{summary.todayCount}</strong> {summary.todayCount === 1 ? 'walk' : 'walks'} ·{' '}
-            <strong>
+          <p className="text-ink-soft">
+            <strong className="text-ink">{summary.todayCount}</strong>{' '}
+            {summary.todayCount === 1 ? 'walk' : 'walks'} ·{' '}
+            <strong className="text-ink">
               {summary.todayMinutes === 0 && summary.todayCount > 0 ? '<1' : summary.todayMinutes}
             </strong>{' '}
             min today
           </p>
-          <div className="outing-actions">
+          <div className="flex flex-wrap items-center gap-[0.65rem]">
             <button
-              className="primary-button"
+              className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-sunshine py-[0.6rem] px-4 gap-[0.45rem] border border-[#d1a51a] disabled:opacity-45 disabled:cursor-not-allowed"
               disabled={busy || query.isPending}
               onClick={() =>
                 void perform(async () => {
@@ -227,7 +245,7 @@ export function WalkTracker({
               <Footprints size={18} /> Start walk
             </button>
             <button
-              className="secondary-button"
+              className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-white py-[0.6rem] px-4 gap-[0.45rem] border border-line"
               disabled={busy}
               onClick={() => setComposer({ kind: 'walk' })}
             >
@@ -236,25 +254,27 @@ export function WalkTracker({
           </div>
         </>
       )}
-      <div className="quick-potty">
-        <p className="eyebrow">Potty break outside a walk</p>
-        <div className="outing-actions">
+      <div className="mt-[1.2rem] pt-[1.2rem] border-t border-solid border-t-line">
+        <p className="flex items-center mb-[0.45rem] text-[#67717e] text-[0.72rem] font-extrabold tracking-[0.14em] uppercase gap-[0.4rem]">
+          Potty break outside a walk
+        </p>
+        <div className="flex flex-wrap items-center gap-[0.65rem]">
           <button
-            className="secondary-button"
+            className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-white py-[0.6rem] px-4 gap-[0.45rem] border border-line"
             disabled={busy}
             onClick={() => void perform(() => quickPotty('peeCount'))}
           >
             Log pee
           </button>
           <button
-            className="secondary-button"
+            className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-white py-[0.6rem] px-4 gap-[0.45rem] border border-line"
             disabled={busy}
             onClick={() => void perform(() => quickPotty('poopCount'))}
           >
             Log poop
           </button>
           <button
-            className="text-link"
+            className="inline-flex items-center bg-transparent text-[#425468] text-[0.82rem] font-extrabold underline underline-offset-3 cursor-pointer min-h-11 py-[0.4rem] px-0 gap-[0.3rem] border-0"
             disabled={busy}
             onClick={() => setComposer({ kind: 'potty' })}
           >
@@ -262,17 +282,17 @@ export function WalkTracker({
           </button>
         </div>
       </div>
-      <dl className="outing-recent">
+      <dl className="grid mt-[1.2rem] mb-0 text-[0.8rem] mx-0 gap-[0.55rem]">
         <RecentRecord label="Last walk" entry={summary.lastWalk} />
         <RecentRecord label="Last pee record" entry={summary.lastPee} />
         <RecentRecord label="Last poop record" entry={summary.lastPoop} />
       </dl>
       {notice && (
-        <output className="outing-notice">
+        <output className="flex items-center mt-4 text-[#365940] text-[0.85rem] gap-3">
           {notice.text}
           {notice.undoId && (
             <button
-              className="text-link"
+              className="inline-flex items-center bg-transparent text-[#425468] text-[0.82rem] font-extrabold underline underline-offset-3 cursor-pointer min-h-11 py-[0.4rem] px-0 gap-[0.3rem] border-0"
               disabled={busy}
               onClick={() =>
                 void perform(async () => {
@@ -287,7 +307,7 @@ export function WalkTracker({
         </output>
       )}
       {(error || query.isError) && (
-        <p className="outing-error" role="alert">
+        <p className="text-[#a03d30] text-[0.85rem] my-3 mx-0" role="alert">
           {error || 'Could not load walk history. Please reload and try again.'}
         </p>
       )}
@@ -300,9 +320,9 @@ export function WalkTracker({
 
 function RecentRecord({ label, entry }: { label: string; entry?: Outing }) {
   return (
-    <div>
-      <dt>{label}</dt>
-      <dd>
+    <div className="flex flex-wrap justify-between gap-x-3 gap-y-1">
+      <dt className="font-bold">{label}</dt>
+      <dd className="m-0 text-ink-soft">
         {entry
           ? `${formatDate(entry.startedAt, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${entry.kind === 'walk' && label !== 'Last walk' ? ' walk' : ''}`
           : 'Not recorded yet'}

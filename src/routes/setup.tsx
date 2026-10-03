@@ -67,31 +67,46 @@ function SetupRoute() {
   })
 
   return (
-    <main id="main-content" className="setup-page">
-      <div className="setup-brand">
-        <span>
+    <main
+      id="main-content"
+      className="min-h-svh grid content-start bg-paper tablet:content-center tablet:py-8 tablet:px-0"
+    >
+      <div className="flex items-center pt-[calc(1rem_+_env(safe-area-inset-top))] pb-4 font-serif font-bold px-[1.2rem] gap-[0.55rem] tablet:fixed tablet:top-0 tablet:left-0">
+        <span className="grid place-items-center rounded-full bg-sunshine size-8">
           <PawPrint size={17} />
         </span>{' '}
         Pawprint
       </div>
-      <div className="setup-card">
-        <div className="step-row" aria-label={`Step ${step} of 2`}>
-          <span className="active" />
-          <span className={step === 2 ? 'active' : ''} />
+      <div className="w-[min(100%,_590px)] pt-[1.2rem] pb-8 my-0 mx-auto px-4 tablet:pt-8 tablet:rounded-[28px] tablet:bg-cream tablet:shadow-card tablet:px-8 tablet:border tablet:border-line">
+        <div
+          className="grid grid-cols-[1fr_1fr] mb-8 gap-[0.35rem]"
+          aria-label={`Step ${step} of 2`}
+        >
+          <span
+            className="h-1 rounded-full bg-[#d8dee1] data-[active=true]:bg-sunshine-deep"
+            data-active="true"
+          />
+          <span
+            className="h-1 rounded-full bg-[#d8dee1] data-[active=true]:bg-sunshine-deep"
+            data-active={step === 2}
+          />
         </div>
         {step === 1 ? (
-          <section className="setup-step">
-            <p className="eyebrow">
+          <section>
+            <p className="flex items-center mb-[0.45rem] text-[#67717e] text-[0.72rem] font-extrabold tracking-[0.14em] uppercase gap-[0.4rem]">
               <Sparkles size={14} /> A new life book
             </p>
-            <h1>
+            <h1 className="mb-4">
               Who are we
               <br />
               remembering?
             </h1>
-            <p className="lede">Start with the face and name that make your phone light up.</p>
-            <label className="photo-picker">
+            <p className="text-ink-soft text-[1.05rem] leading-[1.65]">
+              Start with the face and name that make your phone light up.
+            </p>
+            <label className="grid place-items-center w-full min-h-[142px] overflow-hidden rounded-[24px_24px_19px_19px] bg-[#e9eff1] cursor-pointer my-[1.2rem] mx-0 border border-[#9eabb1] border-dashed">
               <input
+                className="absolute opacity-0 size-px"
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/heic"
                 capture="environment"
@@ -107,42 +122,66 @@ function SetupRoute() {
                 }}
               />
               {photoPreview ? (
-                <img src={photoPreview} alt="Selected pet profile" />
+                <img
+                  className="w-full h-[210px] object-cover"
+                  src={photoPreview}
+                  alt="Selected pet profile"
+                />
               ) : (
-                <span>
+                <span className="grid justify-items-center text-ink-soft gap-1">
                   <Camera size={25} />
                   <b>Add a favorite photo</b>
-                  <small>JPG, PNG, WebP or HEIC · up to 8 MB</small>
+                  <small className="text-[0.68rem]">JPG, PNG, WebP or HEIC · up to 8 MB</small>
                 </span>
               )}
             </label>
             {photoError && (
-              <p className="field-error" role="alert">
+              <p
+                className="mt-[-0.55rem] mb-[0.7rem] text-[#a03d30] text-[0.78rem] font-bold mx-0"
+                role="alert"
+              >
                 {photoError}
               </p>
             )}
-            <label className="field">
-              <span>Name</span>
-              <input autoComplete="off" placeholder="e.g. Juniper" {...register('name')} />
+            <label className="grid mb-[0.9rem] gap-[0.4rem]">
+              <span className="text-[0.78rem] font-extrabold text-[#435066]">Name</span>
+              <input
+                className="w-full min-h-12.5 rounded-[13px] bg-white text-ink py-3 px-[0.85rem] border border-[#cfd7db] focus:outline-3 focus:outline-solid focus:outline-[rgba(159,_201,_212,_0.45)] focus:border-[#748995]"
+                autoComplete="off"
+                placeholder="e.g. Juniper"
+                {...register('name')}
+              />
             </label>
             {errors.name && (
-              <p className="field-error" role="alert">
+              <p
+                className="mt-[-0.55rem] mb-[0.7rem] text-[#a03d30] text-[0.78rem] font-bold mx-0"
+                role="alert"
+              >
                 {errors.name.message}
               </p>
             )}
-            <fieldset className="segmented-field">
-              <legend>Species</legend>
-              <div>
+            <fieldset className="mt-0 mb-[1.1rem] mx-0 p-0 border-0">
+              <legend className="text-[0.78rem] font-extrabold text-[#435066] mb-[0.4rem]">
+                Species
+              </legend>
+              <div className="grid grid-cols-[repeat(3,_1fr)] gap-[0.45rem]">
                 {(['dog', 'cat', 'other'] as const).map((species) => (
-                  <label key={species}>
-                    <input type="radio" value={species} {...register('species')} />
-                    <span>{species === 'dog' ? 'Dog' : species === 'cat' ? 'Cat' : 'Other'}</span>
+                  <label className="relative" key={species}>
+                    <input
+                      className="peer absolute opacity-0"
+                      type="radio"
+                      value={species}
+                      {...register('species')}
+                    />
+                    <span className="min-h-12 grid place-items-center rounded-[13px] bg-white font-bold border border-[#cfd7db] peer-checked:bg-ink peer-checked:text-white peer-checked:border-ink">
+                      {species === 'dog' ? 'Dog' : species === 'cat' ? 'Cat' : 'Other'}
+                    </span>
                   </label>
                 ))}
               </div>
             </fieldset>
             <button
-              className="primary-button full"
+              className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-sunshine w-full py-[0.6rem] px-4 gap-[0.45rem] border border-[#d1a51a] disabled:opacity-45 disabled:cursor-not-allowed"
               type="button"
               disabled={!name?.trim()}
               onClick={() => setStep(2)}
@@ -151,31 +190,48 @@ function SetupRoute() {
             </button>
           </section>
         ) : (
-          <form className="setup-step" onSubmit={onSubmit}>
-            <button className="back-button" type="button" onClick={() => setStep(1)}>
+          <form onSubmit={onSubmit}>
+            <button
+              className="min-h-11 inline-flex items-center mb-[0.7rem] bg-transparent font-extrabold cursor-pointer p-0 gap-1 border-0"
+              type="button"
+              onClick={() => setStep(1)}
+            >
               <ChevronLeft size={18} /> Back
             </button>
-            <p className="eyebrow">A few more details</p>
-            <h1>
+            <p className="flex items-center mb-[0.45rem] text-[#67717e] text-[0.72rem] font-extrabold tracking-[0.14em] uppercase gap-[0.4rem]">
+              A few more details
+            </p>
+            <h1 className="mb-4">
               Tell us about
               <br />
               {name || 'your pet'}.
             </h1>
-            <p className="lede">You can change any of this later.</p>
-            <label className="field">
-              <span>
-                Breed <small>optional</small>
+            <p className="text-ink-soft text-[1.05rem] leading-[1.65]">
+              You can change any of this later.
+            </p>
+            <label className="grid mb-[0.9rem] gap-[0.4rem]">
+              <span className="text-[0.78rem] font-extrabold text-[#435066]">
+                Breed <small className="text-[#87909a] font-medium">optional</small>
               </span>
-              <input placeholder="e.g. Golden retriever" {...register('breed')} />
+              <input
+                className="w-full min-h-12.5 rounded-[13px] bg-white text-ink py-3 px-[0.85rem] border border-[#cfd7db] focus:outline-3 focus:outline-solid focus:outline-[rgba(159,_201,_212,_0.45)] focus:border-[#748995]"
+                placeholder="e.g. Golden retriever"
+                {...register('breed')}
+              />
             </label>
-            <div className="field-pair">
-              <label className="field">
-                <span>Birthday</span>
-                <input type="date" {...register('birthDate')} />
-              </label>
-              <label className="field">
-                <span>Or age</span>
+            <div className="grid grid-cols-[1fr_1fr] gap-[0.7rem] [@media(width<=370px)]:grid-cols-[1fr] [@media(width<=370px)]:gap-0">
+              <label className="grid mb-[0.9rem] gap-[0.4rem]">
+                <span className="text-[0.78rem] font-extrabold text-[#435066]">Birthday</span>
                 <input
+                  className="w-full min-h-12.5 rounded-[13px] bg-white text-ink py-3 px-[0.85rem] border border-[#cfd7db] focus:outline-3 focus:outline-solid focus:outline-[rgba(159,_201,_212,_0.45)] focus:border-[#748995]"
+                  type="date"
+                  {...register('birthDate')}
+                />
+              </label>
+              <label className="grid mb-[0.9rem] gap-[0.4rem]">
+                <span className="text-[0.78rem] font-extrabold text-[#435066]">Or age</span>
+                <input
+                  className="w-full min-h-12.5 rounded-[13px] bg-white text-ink py-3 px-[0.85rem] border border-[#cfd7db] focus:outline-3 focus:outline-solid focus:outline-[rgba(159,_201,_212,_0.45)] focus:border-[#748995]"
                   type="number"
                   inputMode="numeric"
                   min="0"
@@ -186,20 +242,28 @@ function SetupRoute() {
               </label>
             </div>
             {errors.birthDate && (
-              <p className="field-error" role="alert">
+              <p
+                className="mt-[-0.55rem] mb-[0.7rem] text-[#a03d30] text-[0.78rem] font-bold mx-0"
+                role="alert"
+              >
                 {errors.birthDate.message}
               </p>
             )}
-            <label className="check-field">
-              <input type="checkbox" {...register('approximateBirthDate')} />
+            <label className="min-h-11 flex items-center mt-[-0.2rem] mb-4 text-[0.85rem] mx-0 gap-[0.6rem]">
+              <input
+                className="accent-ink size-5"
+                type="checkbox"
+                {...register('approximateBirthDate')}
+              />
               <span>This date is approximate</span>
             </label>
-            <div className="field-pair weight-pair">
-              <label className="field">
-                <span>
-                  Current weight <small>optional</small>
+            <div className="grid grid-cols-[1fr_92px] gap-[0.7rem] [@media(width<=370px)]:grid-cols-[1fr_86px] [@media(width<=370px)]:gap-[0.6rem]">
+              <label className="grid mb-[0.9rem] gap-[0.4rem]">
+                <span className="text-[0.78rem] font-extrabold text-[#435066]">
+                  Current weight <small className="text-[#87909a] font-medium">optional</small>
                 </span>
                 <input
+                  className="w-full min-h-12.5 rounded-[13px] bg-white text-ink py-3 px-[0.85rem] border border-[#cfd7db] focus:outline-3 focus:outline-solid focus:outline-[rgba(159,_201,_212,_0.45)] focus:border-[#748995]"
                   type="number"
                   inputMode="decimal"
                   step="0.1"
@@ -207,19 +271,25 @@ function SetupRoute() {
                   {...register('currentWeight')}
                 />
               </label>
-              <label className="field">
-                <span>Unit</span>
-                <select {...register('weightUnit')}>
+              <label className="grid mb-[0.9rem] gap-[0.4rem]">
+                <span className="text-[0.78rem] font-extrabold text-[#435066]">Unit</span>
+                <select
+                  className="w-full min-h-12.5 rounded-[13px] bg-white text-ink py-3 px-[0.85rem] border border-[#cfd7db] focus:outline-3 focus:outline-solid focus:outline-[rgba(159,_201,_212,_0.45)] focus:border-[#748995]"
+                  {...register('weightUnit')}
+                >
                   <option value="kg">kg</option>
                   <option value="lb">lb</option>
                 </select>
               </label>
             </div>
-            <button className="primary-button full" disabled={isSubmitting}>
+            <button
+              className="min-h-11.5 inline-flex items-center justify-center rounded-[14px] font-extrabold cursor-pointer bg-sunshine w-full py-[0.6rem] px-4 gap-[0.45rem] border border-[#d1a51a] disabled:opacity-45 disabled:cursor-not-allowed"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? 'Making the book…' : `Start ${name || 'our'}’s book`}{' '}
               <PawPrint size={18} />
             </button>
-            <p className="privacy-note">
+            <p className="mt-4 mb-0 max-w-[360px] text-[#79838e] text-center text-[0.72rem] mx-auto">
               Your memories stay on this device until they sync to your Pawprint database.
             </p>
           </form>
