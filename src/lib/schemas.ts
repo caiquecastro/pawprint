@@ -48,9 +48,11 @@ export const reminderSchema = z.object({
 
 export const syncMutationSchema = z
   .object({
-    id: z.string().regex(/^(pet|journal|measurement|reminder|outing):[0-9a-f-]{36}$/),
+    id: z
+      .string()
+      .regex(/^(pet|journal|measurement|reminder|outing|food|foodSupply):[0-9a-f-]{36}$/),
     revision: z.uuid().optional(),
-    entity: z.enum(['pet', 'journal', 'measurement', 'reminder', 'outing']),
+    entity: z.enum(['pet', 'journal', 'measurement', 'reminder', 'outing', 'food', 'foodSupply']),
     entityId: z.uuid(),
     operation: z.enum(['create', 'update', 'delete']),
     payload: z.record(z.string(), z.unknown()),
@@ -124,3 +126,21 @@ export function validatePhoto(file: File) {
   if (file.size > MAX_PHOTO_BYTES) return 'Choose a photo smaller than 8 MB.'
   return null
 }
+
+export const foodEntrySchema = z.object({
+  id: z.uuid(),
+  petId: z.uuid(),
+  supplyId: z.uuid().optional(),
+  food: z.string().trim().min(1, 'Enter the food name.').max(120),
+  amount: z.number().positive('Enter a portion greater than zero.').max(100000),
+  unit: z.enum(['g', 'oz', 'cups', 'servings']),
+  fedAt: z.iso.datetime(),
+  notes: z.string().trim().max(6000),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+  deletedAt: z.iso.datetime().optional(),
+})
+
+export const foodSupplySchema = foodEntrySchema.omit({ supplyId: true, fedAt: true }).extend({
+  purchasedAt: z.iso.datetime(),
+})

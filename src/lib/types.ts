@@ -97,7 +97,46 @@ export type Outing = {
   syncError?: string
 }
 
-export type EntityKind = 'pet' | 'journal' | 'measurement' | 'reminder' | 'outing' | 'media'
+export type FoodEntry = {
+  id: string
+  petId: string
+  supplyId?: string
+  food: string
+  amount: number
+  unit: 'g' | 'oz' | 'cups' | 'servings'
+  fedAt: string
+  notes: string
+  createdAt: string
+  updatedAt: string
+  deletedAt?: string
+  syncState?: SyncState
+  syncError?: string
+}
+
+export type FoodSupply = {
+  id: string
+  petId: string
+  food: string
+  amount: number
+  unit: FoodEntry['unit']
+  purchasedAt: string
+  notes: string
+  createdAt: string
+  updatedAt: string
+  deletedAt?: string
+  syncState?: SyncState
+  syncError?: string
+}
+
+export type EntityKind =
+  | 'pet'
+  | 'journal'
+  | 'measurement'
+  | 'reminder'
+  | 'outing'
+  | 'food'
+  | 'foodSupply'
+  | 'media'
 export type MutationKind = 'create' | 'update' | 'delete'
 
 export type OutboxItem = {
@@ -119,5 +158,7 @@ export type SyncSnapshot = {
   measurements: Measurement[]
   reminders: CareReminder[]
   outings: Outing[]
+  food: FoodEntry[]
+  foodSupplies: FoodSupply[]
   media: MediaRecord[]
 }

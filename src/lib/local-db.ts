@@ -1,6 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction } from 'idb'
 import type {
   CareReminder,
+  FoodEntry,
+  FoodSupply,
   JournalEntry,
   Measurement,
   MediaRecord,
@@ -10,7 +12,7 @@ import type {
   SyncSnapshot,
   SyncState,
 } from './types'
-import { outingSchema } from './schemas'
+import { foodEntrySchema, foodSupplySchema, outingSchema } from './schemas'
 
 interface PawprintDB extends DBSchema {
   pets: { key: string; value: Pet }
@@ -19,6 +21,8 @@ interface PawprintDB extends DBSchema {
   reminders: { key: string; value: CareReminder; indexes: { 'by-pet': string } }
   media: { key: string; value: MediaRecord; indexes: { 'by-pet': string; 'by-entry': string } }
   outings: { key: string; value: Outing; indexes: { 'by-pet': string } }
+  foodSupplies: { key: string; value: FoodSupply; indexes: { 'by-pet': string } }
+  food: { key: string; value: FoodEntry; indexes: { 'by-pet': string } }
   outbox: { key: string; value: OutboxItem; indexes: { 'by-status': string } }
 }
 
@@ -29,7 +33,7 @@ let activeDb: IDBPDatabase<PawprintDB> | undefined
 let activeDbPromise: Promise<IDBPDatabase<PawprintDB>> | undefined
 
 const openPawprintDb = (name: string) =>
-  openDB<PawprintDB>(name, 2, {
+  openDB<PawprintDB>(name, 3, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         db.createObjectStore('pets', { keyPath: 'id' })
@@ -48,6 +52,12 @@ const openPawprintDb = (name: string) =>
       if (oldVersion < 2) {
         const outings = db.createObjectStore('outings', { keyPath: 'id' })
         outings.createIndex('by-pet', 'petId')
+      }
+      if (oldVersion < 3) {
+        const food = db.createObjectStore('food', { keyPath: 'id' })
+        food.createIndex('by-pet', 'petId')
+        const supplies = db.createObjectStore('foodSupplies', { keyPath: 'id' })
+        supplies.createIndex('by-pet', 'petId')
       }
     },
   })
@@ -92,7 +102,17 @@ async function claimLegacyData(target: IDBPDatabase<PawprintDB>) {
       legacy.getAll('outbox'),
     ])
   const tx = target.transaction(
-    ['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox', 'outings'],
+    [
+      'pets',
+      'journal',
+      'measurements',
+      'reminders',
+      'media',
+      'outbox',
+      'outings',
+      'food',
+      'foodSupplies',
+    ],
     'readwrite',
   )
   await Promise.all([
@@ -118,6 +138,8 @@ const entityStores = {
   measurement: 'measurements',
   reminder: 'reminders',
   outing: 'outings',
+  food: 'food',
+  foodSupply: 'foodSupplies',
 } as const
 
 type SyncedEntity = keyof typeof entityStores
@@ -148,11 +170,9 @@ async function queueMutation(
   await outbox.put(item)
 }
 
-async function persistRecord<T extends Pet | JournalEntry | Measurement | CareReminder | Outing>(
-  entity: SyncedEntity,
-  value: T,
-  operation: OutboxItem['operation'],
-) {
+async function persistRecord<
+  T extends Pet | JournalEntry | Measurement | CareReminder | Outing | FoodEntry | FoodSupply,
+>(entity: SyncedEntity, value: T, operation: OutboxItem['operation']) {
   const record = { ...value, syncState: 'pending' as const, syncError: undefined }
   const db = await getDb()
   const store = entityStores[entity]
@@ -306,7 +326,17 @@ export async function resetDatabaseForTests() {
   if (!activeDbPromise) await configureLocalOwner('test-user', false)
   const db = await getDb()
   const tx = db.transaction(
-    ['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox', 'outings'],
+    [
+      'pets',
+      'journal',
+      'measurements',
+      'reminders',
+      'media',
+      'outbox',
+      'outings',
+      'food',
+      'foodSupplies',
+    ],
     'readwrite',
   )
   await Promise.all([
@@ -317,6 +347,8 @@ export async function resetDatabaseForTests() {
     tx.objectStore('media').clear(),
     tx.objectStore('outbox').clear(),
     tx.objectStore('outings').clear(),
+    tx.objectStore('food').clear(),
+    tx.objectStore('foodSupplies').clear(),
   ])
   await tx.done
 }
@@ -405,7 +437,17 @@ function shallowEqual(left: object, right: object) {
 export async function applySyncSnapshot(snapshot: SyncSnapshot) {
   const db = await getDb()
   const tx = db.transaction(
-    ['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox', 'outings'],
+    [
+      'pets',
+      'journal',
+      'measurements',
+      'reminders',
+      'media',
+      'outbox',
+      'outings',
+      'food',
+      'foodSupplies',
+    ],
     'readwrite',
   )
   const pending = new Set(
@@ -466,6 +508,24 @@ export async function applySyncSnapshot(snapshot: SyncSnapshot) {
       pending,
       (id) => tx.objectStore('outings').get(id),
       (record) => tx.objectStore('outings').put(record),
+    )) || changed
+
+  changed =
+    (await mergeVersionedRecords(
+      snapshot.food ?? [],
+      'food',
+      pending,
+      (id) => tx.objectStore('food').get(id),
+      (record) => tx.objectStore('food').put(record),
+    )) || changed
+
+  changed =
+    (await mergeVersionedRecords(
+      snapshot.foodSupplies ?? [],
+      'foodSupply',
+      pending,
+      (id) => tx.objectStore('foodSupplies').get(id),
+      (record) => tx.objectStore('foodSupplies').put(record),
     )) || changed
 
   const mediaByObjectKey = new Map(
@@ -599,5 +659,140 @@ export function deleteOuting(id: string) {
     if (!existing) throw new Error('This record is no longer available.')
     const now = new Date().toISOString()
     return { ...existing, deletedAt: now, updatedAt: now }
+  })
+}
+
+export async function listFood(petId: string) {
+  return (await (await getDb()).getAllFromIndex('food', 'by-pet', petId))
+    .filter((item) => !item.deletedAt)
+    .sort((a, b) => b.fedAt.localeCompare(a.fedAt))
+}
+
+async function mutateFood(id: string, change: (existing?: FoodEntry) => FoodEntry) {
+  const db = await getDb()
+  const tx = db.transaction(['food', 'foodSupplies', 'outbox'], 'readwrite')
+  void tx.done.catch(() => undefined)
+
+  try {
+    const store = tx.objectStore('food')
+    const existing = await store.get(id)
+    if (existing?.deletedAt) throw new Error('This food record was deleted.')
+
+    const parsed = foodEntrySchema.parse(change(existing))
+    if (existing && existing.petId !== parsed.petId) {
+      throw new Error('A food record cannot be moved to another pet.')
+    }
+    if (parsed.supplyId) {
+      const supply = await tx.objectStore('foodSupplies').get(parsed.supplyId)
+      if (!supply || supply.petId !== parsed.petId || supply.unit !== parsed.unit) {
+        throw new Error('Choose a food supply for this pet with the same portion unit.')
+      }
+      if (supply.deletedAt && existing?.supplyId !== supply.id) {
+        throw new Error('This food supply was removed. Choose another supply.')
+      }
+    }
+    if (Date.parse(parsed.fedAt) > Date.now()) {
+      throw new Error('Choose a feeding time in the past.')
+    }
+
+    const record = {
+      ...parsed,
+      createdAt: existing?.createdAt ?? parsed.createdAt,
+      updatedAt: new Date(
+        Math.max(Date.now(), Date.parse(existing?.updatedAt ?? parsed.updatedAt) + 1),
+      ).toISOString(),
+      syncState: 'pending' as const,
+    }
+    await store.put(record)
+    await queueMutation(
+      tx,
+      'food',
+      id,
+      record.deletedAt ? 'delete' : existing ? 'update' : 'create',
+      record,
+    )
+    await tx.done
+    notifyChanged()
+    return record
+  } catch (error) {
+    try {
+      tx.abort()
+    } catch {
+      // The transaction may already have completed or aborted.
+    }
+    throw error
+  }
+}
+
+export function saveFood(entry: FoodEntry) {
+  return mutateFood(entry.id, () => entry)
+}
+
+export function deleteFood(id: string) {
+  return mutateFood(id, (existing) => {
+    if (!existing) throw new Error('This food record is no longer available.')
+    return { ...existing, deletedAt: new Date().toISOString() }
+  })
+}
+
+export async function listFoodSupplies(petId: string) {
+  return (await (await getDb()).getAllFromIndex('foodSupplies', 'by-pet', petId))
+    .filter((item) => !item.deletedAt)
+    .sort((a, b) => b.purchasedAt.localeCompare(a.purchasedAt))
+}
+
+async function mutateFoodSupply(id: string, change: (existing?: FoodSupply) => FoodSupply) {
+  const db = await getDb()
+  const tx = db.transaction(['foodSupplies', 'outbox'], 'readwrite')
+  void tx.done.catch(() => undefined)
+
+  try {
+    const store = tx.objectStore('foodSupplies')
+    const existing = await store.get(id)
+    if (existing?.deletedAt) throw new Error('This food supply was removed.')
+    const parsed = foodSupplySchema.parse(change(existing))
+    if (existing && (existing.petId !== parsed.petId || existing.unit !== parsed.unit)) {
+      throw new Error('A food supply cannot change pets or units. Add a new supply instead.')
+    }
+    if (Date.parse(parsed.purchasedAt) > Date.now()) {
+      throw new Error('Choose a purchase time in the past.')
+    }
+    const record = {
+      ...parsed,
+      createdAt: existing?.createdAt ?? parsed.createdAt,
+      updatedAt: new Date(
+        Math.max(Date.now(), Date.parse(existing?.updatedAt ?? parsed.updatedAt) + 1),
+      ).toISOString(),
+      syncState: 'pending' as const,
+    }
+    await store.put(record)
+    await queueMutation(
+      tx,
+      'foodSupply',
+      id,
+      record.deletedAt ? 'delete' : existing ? 'update' : 'create',
+      record,
+    )
+    await tx.done
+    notifyChanged()
+    return record
+  } catch (error) {
+    try {
+      tx.abort()
+    } catch {
+      // The transaction may already have completed or aborted.
+    }
+    throw error
+  }
+}
+
+export function saveFoodSupply(supply: FoodSupply) {
+  return mutateFoodSupply(supply.id, () => supply)
+}
+
+export function deleteFoodSupply(id: string) {
+  return mutateFoodSupply(id, (existing) => {
+    if (!existing) throw new Error('This food supply is no longer available.')
+    return { ...existing, deletedAt: new Date().toISOString() }
   })
 }

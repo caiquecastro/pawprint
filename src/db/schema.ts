@@ -136,3 +136,42 @@ export const outings = sqliteTable(
   },
   (table) => [index('outings_pet_started_idx').on(table.petId, table.startedAt)],
 )
+
+export const foodSupplies = sqliteTable(
+  'food_supplies',
+  {
+    id: text('id').primaryKey(),
+    petId: text('pet_id')
+      .notNull()
+      .references(() => pets.id, { onDelete: 'cascade' }),
+    food: text('food').notNull(),
+    amount: real('amount').notNull(),
+    unit: text('unit').notNull(),
+    purchasedAt: text('purchased_at').notNull(),
+    notes: text('notes').notNull().default(''),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    deletedAt: text('deleted_at'),
+  },
+  (table) => [index('food_supplies_pet_idx').on(table.petId, table.purchasedAt)],
+)
+
+export const foodEntries = sqliteTable(
+  'food_entries',
+  {
+    id: text('id').primaryKey(),
+    petId: text('pet_id')
+      .notNull()
+      .references(() => pets.id, { onDelete: 'cascade' }),
+    food: text('food').notNull(),
+    amount: real('amount').notNull(),
+    unit: text('unit').notNull(),
+    supplyId: text('supply_id').references(() => foodSupplies.id),
+    fedAt: text('fed_at').notNull(),
+    notes: text('notes').notNull().default(''),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    deletedAt: text('deleted_at'),
+  },
+  (table) => [index('food_pet_fed_idx').on(table.petId, table.fedAt)],
+)

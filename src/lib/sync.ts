@@ -27,6 +27,9 @@ async function runSync(force: boolean) {
         !attempted.has(`${item.id}:${item.revision ?? 'legacy'}`),
     )
     if (items.length === 0) break
+    // Parents must reach D1 before dependent meals, including after a failed attempt.
+    const priority = (entity: string) => (entity === 'pet' ? 0 : entity === 'foodSupply' ? 1 : 2)
+    items.sort((a, b) => priority(a.entity) - priority(b.entity))
     for (const item of items) {
       attempted.add(`${item.id}:${item.revision ?? 'legacy'}`)
       try {

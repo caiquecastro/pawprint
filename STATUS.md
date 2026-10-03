@@ -10,6 +10,7 @@
 - [x] Journal create, read, edit, soft-delete, filtering, sync states
 - [x] Weight, health-note, and vet-visit history
 - [x] Recurring care reminders and completion history
+- [x] Meal history, food supplies, automatic portion deductions, and low-stock notices
 - [x] Walk timer, manual walk history, and standalone potty breaks with optional counts
 - [x] Mutation revisions and acknowledgement checks preserve edits made during synchronization
 - [x] R2 upload/download endpoints and D1 media metadata

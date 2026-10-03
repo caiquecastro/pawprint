@@ -2,6 +2,8 @@ import { eq, getTableColumns, lt } from 'drizzle-orm'
 import type { BatchItem } from 'drizzle-orm/batch'
 import { drizzle } from 'drizzle-orm/d1'
 import {
+  foodEntries,
+  foodSupplies,
   careReminders,
   journalEntries,
   media,
@@ -10,7 +12,7 @@ import {
   processedMutations,
   outings,
 } from '../db/schema'
-import { outingSchema } from '../lib/schemas'
+import { foodEntrySchema, foodSupplySchema, outingSchema } from '../lib/schemas'
 import type {
   CareReminder,
   JournalEntry,
@@ -71,35 +73,53 @@ export class PawprintRepository {
   }
 
   async getSnapshot(): Promise<SyncSnapshot> {
-    const [petRows, journalRows, measurementRows, reminderRows, outingRows, mediaRows] =
-      await this.db.batch([
-        this.db.select().from(pets).where(eq(pets.ownerId, this.ownerId)),
-        this.db
-          .select(getTableColumns(journalEntries))
-          .from(journalEntries)
-          .innerJoin(pets, eq(journalEntries.petId, pets.id))
-          .where(eq(pets.ownerId, this.ownerId)),
-        this.db
-          .select(getTableColumns(measurements))
-          .from(measurements)
-          .innerJoin(pets, eq(measurements.petId, pets.id))
-          .where(eq(pets.ownerId, this.ownerId)),
-        this.db
-          .select(getTableColumns(careReminders))
-          .from(careReminders)
-          .innerJoin(pets, eq(careReminders.petId, pets.id))
-          .where(eq(pets.ownerId, this.ownerId)),
-        this.db
-          .select(getTableColumns(outings))
-          .from(outings)
-          .innerJoin(pets, eq(outings.petId, pets.id))
-          .where(eq(pets.ownerId, this.ownerId)),
-        this.db
-          .select(getTableColumns(media))
-          .from(media)
-          .innerJoin(pets, eq(media.petId, pets.id))
-          .where(eq(pets.ownerId, this.ownerId)),
-      ] as const)
+    const [
+      petRows,
+      journalRows,
+      measurementRows,
+      reminderRows,
+      outingRows,
+      foodRows,
+      supplyRows,
+      mediaRows,
+    ] = await this.db.batch([
+      this.db.select().from(pets).where(eq(pets.ownerId, this.ownerId)),
+      this.db
+        .select(getTableColumns(journalEntries))
+        .from(journalEntries)
+        .innerJoin(pets, eq(journalEntries.petId, pets.id))
+        .where(eq(pets.ownerId, this.ownerId)),
+      this.db
+        .select(getTableColumns(measurements))
+        .from(measurements)
+        .innerJoin(pets, eq(measurements.petId, pets.id))
+        .where(eq(pets.ownerId, this.ownerId)),
+      this.db
+        .select(getTableColumns(careReminders))
+        .from(careReminders)
+        .innerJoin(pets, eq(careReminders.petId, pets.id))
+        .where(eq(pets.ownerId, this.ownerId)),
+      this.db
+        .select(getTableColumns(outings))
+        .from(outings)
+        .innerJoin(pets, eq(outings.petId, pets.id))
+        .where(eq(pets.ownerId, this.ownerId)),
+      this.db
+        .select(getTableColumns(foodEntries))
+        .from(foodEntries)
+        .innerJoin(pets, eq(foodEntries.petId, pets.id))
+        .where(eq(pets.ownerId, this.ownerId)),
+      this.db
+        .select(getTableColumns(foodSupplies))
+        .from(foodSupplies)
+        .innerJoin(pets, eq(foodSupplies.petId, pets.id))
+        .where(eq(pets.ownerId, this.ownerId)),
+      this.db
+        .select(getTableColumns(media))
+        .from(media)
+        .innerJoin(pets, eq(media.petId, pets.id))
+        .where(eq(pets.ownerId, this.ownerId)),
+    ] as const)
 
     const mediaRecords = mediaRows.map((record) => ({
       id: record.id,
@@ -191,6 +211,18 @@ export class PawprintRepository {
         ...record,
         kind: record.kind as 'walk' | 'potty',
         deletedAt: record.deletedAt ?? undefined,
+        syncState: 'synced',
+      })),
+      food: foodRows.map((record) => ({
+        ...foodEntrySchema.parse({
+          ...record,
+          supplyId: record.supplyId ?? undefined,
+          deletedAt: record.deletedAt ?? undefined,
+        }),
+        syncState: 'synced',
+      })),
+      foodSupplies: supplyRows.map((record) => ({
+        ...foodSupplySchema.parse({ ...record, deletedAt: record.deletedAt ?? undefined }),
         syncState: 'synced',
       })),
       media: mediaRecords,
@@ -379,6 +411,77 @@ export class PawprintRepository {
               deletedAt: outing.deletedAt ?? null,
             },
             setWhere: lt(outings.updatedAt, outing.updatedAt),
+          }),
+      }
+    }
+
+    if (item.entity === 'foodSupply') {
+      const supply = foodSupplySchema.parse(item.payload)
+      const existing = await this.db
+        .select({ petId: foodSupplies.petId, unit: foodSupplies.unit })
+        .from(foodSupplies)
+        .where(eq(foodSupplies.id, supply.id))
+        .get()
+      if (existing && (existing.petId !== supply.petId || existing.unit !== supply.unit)) {
+        throw new OwnershipError()
+      }
+      await this.assertPetOwned(supply.petId)
+      return {
+        query: this.db
+          .insert(foodSupplies)
+          .values(supply)
+          .onConflictDoUpdate({
+            target: foodSupplies.id,
+            set: {
+              food: supply.food,
+              amount: supply.amount,
+              purchasedAt: supply.purchasedAt,
+              notes: supply.notes,
+              updatedAt: supply.updatedAt,
+              deletedAt: supply.deletedAt ?? null,
+            },
+            setWhere: lt(foodSupplies.updatedAt, supply.updatedAt),
+          }),
+      }
+    }
+
+    if (item.entity === 'food') {
+      const entry = foodEntrySchema.parse(item.payload)
+      const existing = await this.db
+        .select({ petId: foodEntries.petId })
+        .from(foodEntries)
+        .where(eq(foodEntries.id, entry.id))
+        .get()
+      if (existing && existing.petId !== entry.petId) throw new OwnershipError()
+      await this.assertPetOwned(entry.petId)
+      if (entry.supplyId) {
+        const supply = await this.db
+          .select()
+          .from(foodSupplies)
+          .where(eq(foodSupplies.id, entry.supplyId))
+          .get()
+        if (!supply || supply.petId !== entry.petId || supply.unit !== entry.unit) {
+          throw new OwnershipError()
+        }
+      }
+
+      return {
+        query: this.db
+          .insert(foodEntries)
+          .values(entry)
+          .onConflictDoUpdate({
+            target: foodEntries.id,
+            set: {
+              food: entry.food,
+              amount: entry.amount,
+              unit: entry.unit,
+              supplyId: entry.supplyId ?? null,
+              fedAt: entry.fedAt,
+              notes: entry.notes,
+              updatedAt: entry.updatedAt,
+              deletedAt: entry.deletedAt ?? null,
+            },
+            setWhere: lt(foodEntries.updatedAt, entry.updatedAt),
           }),
       }
     }

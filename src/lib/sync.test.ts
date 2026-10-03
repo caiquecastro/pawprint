@@ -47,6 +47,8 @@ const snapshot = (patch: Partial<SyncSnapshot> = {}): SyncSnapshot => ({
   measurements: [],
   reminders: [],
   outings: [],
+  food: [],
+  foodSupplies: [],
   media: [],
   ...patch,
 })

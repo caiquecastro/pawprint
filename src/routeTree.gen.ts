@@ -20,6 +20,7 @@ import { Route as SignInSplatRouteImport } from './routes/sign-in.$'
 import { Route as ApiMediaSplatRouteImport } from './routes/api.media.$'
 import { Route as PetsPetIdIndexRouteImport } from './routes/pets.$petId.index'
 import { Route as PetsPetIdCareRouteImport } from './routes/pets.$petId.care'
+import { Route as PetsPetIdFoodRouteImport } from './routes/pets.$petId.food'
 import { Route as PetsPetIdHealthRouteImport } from './routes/pets.$petId.health'
 import { Route as PetsPetIdJournalRouteImport } from './routes/pets.$petId.journal'
 import { Route as PetsPetIdWalksRouteImport } from './routes/pets.$petId.walks'
@@ -81,6 +82,11 @@ const PetsPetIdCareRoute = PetsPetIdCareRouteImport.update({
   path: '/care',
   getParentRoute: () => PetsPetIdRoute,
 } as any)
+const PetsPetIdFoodRoute = PetsPetIdFoodRouteImport.update({
+  id: '/food',
+  path: '/food',
+  getParentRoute: () => PetsPetIdRoute,
+} as any)
 const PetsPetIdHealthRoute = PetsPetIdHealthRouteImport.update({
   id: '/health',
   path: '/health',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/sign-in/$': typeof SignInSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/pets/$petId/care': typeof PetsPetIdCareRoute
+  '/pets/$petId/food': typeof PetsPetIdFoodRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
   '/pets/$petId/journal': typeof PetsPetIdJournalRouteWithChildren
   '/pets/$petId/walks': typeof PetsPetIdWalksRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/sign-in/$': typeof SignInSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/pets/$petId/care': typeof PetsPetIdCareRoute
+  '/pets/$petId/food': typeof PetsPetIdFoodRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
   '/pets/$petId/walks': typeof PetsPetIdWalksRoute
   '/pets/$petId': typeof PetsPetIdIndexRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/sign-in/$': typeof SignInSplatRoute
   '/api/media/$': typeof ApiMediaSplatRoute
   '/pets/$petId/care': typeof PetsPetIdCareRoute
+  '/pets/$petId/food': typeof PetsPetIdFoodRoute
   '/pets/$petId/health': typeof PetsPetIdHealthRoute
   '/pets/$petId/journal': typeof PetsPetIdJournalRouteWithChildren
   '/pets/$petId/walks': typeof PetsPetIdWalksRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/sign-in/$'
     | '/api/media/$'
     | '/pets/$petId/care'
+    | '/pets/$petId/food'
     | '/pets/$petId/health'
     | '/pets/$petId/journal'
     | '/pets/$petId/walks'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/sign-in/$'
     | '/api/media/$'
     | '/pets/$petId/care'
+    | '/pets/$petId/food'
     | '/pets/$petId/health'
     | '/pets/$petId/walks'
     | '/pets/$petId'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/sign-in/$'
     | '/api/media/$'
     | '/pets/$petId/care'
+    | '/pets/$petId/food'
     | '/pets/$petId/health'
     | '/pets/$petId/journal'
     | '/pets/$petId/walks'
@@ -305,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PetsPetIdCareRouteImport
       parentRoute: typeof PetsPetIdRoute
     }
+    '/pets/$petId/food': {
+      id: '/pets/$petId/food'
+      path: '/food'
+      fullPath: '/pets/$petId/food'
+      preLoaderRoute: typeof PetsPetIdFoodRouteImport
+      parentRoute: typeof PetsPetIdRoute
+    }
     '/pets/$petId/health': {
       id: '/pets/$petId/health'
       path: '/health'
@@ -370,6 +389,7 @@ const PetsPetIdJournalRouteWithChildren =
 
 interface PetsPetIdRouteChildren {
   PetsPetIdCareRoute: typeof PetsPetIdCareRoute
+  PetsPetIdFoodRoute: typeof PetsPetIdFoodRoute
   PetsPetIdHealthRoute: typeof PetsPetIdHealthRoute
   PetsPetIdJournalRoute: typeof PetsPetIdJournalRouteWithChildren
   PetsPetIdWalksRoute: typeof PetsPetIdWalksRoute
@@ -378,6 +398,7 @@ interface PetsPetIdRouteChildren {
 
 const PetsPetIdRouteChildren: PetsPetIdRouteChildren = {
   PetsPetIdCareRoute: PetsPetIdCareRoute,
+  PetsPetIdFoodRoute: PetsPetIdFoodRoute,
   PetsPetIdHealthRoute: PetsPetIdHealthRoute,
   PetsPetIdJournalRoute: PetsPetIdJournalRouteWithChildren,
   PetsPetIdWalksRoute: PetsPetIdWalksRoute,
@@ -403,10 +424,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }
