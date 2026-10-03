@@ -37,6 +37,24 @@ npm run preview
 
 All D1 and R2 access stays in authenticated Worker-only route handlers (`/api/sync`, `/api/uploads`, and private `/api/media/*` reads). The Worker derives `owner_id` from the verified Clerk session; it never trusts an owner supplied by the browser. Do not put Cloudflare credentials or the Clerk secret key in browser-visible `VITE_` variables.
 
+### Deployments from GitHub Actions
+
+The CI workflow runs `npm run check` on pushes and pull requests. After checks pass, pushes to `main` build the application, apply pending production D1 migrations, and deploy the `app` Worker using the committed Cloudflare configuration. Production deployments run one at a time; an active deployment is not canceled by a newer push.
+
+Configure these GitHub Actions values in the repository settings or its `production` environment:
+
+| Type     | Name                         | Value                                                                         |
+| -------- | ---------------------------- | ----------------------------------------------------------------------------- |
+| Secret   | `CLOUDFLARE_API_TOKEN`       | API token scoped to the production Cloudflare account.                        |
+| Secret   | `CLOUDFLARE_ACCOUNT_ID`      | Account ID containing the Worker, `pawprint-db`, and `pawprint-photos`.       |
+| Variable | `VITE_CLERK_PUBLISHABLE_KEY` | Publishable key for the production Clerk application, embedded at build time. |
+
+Follow [Cloudflare's GitHub Actions authentication guide](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/#1-authentication) to create the API token. Start with the Edit Cloudflare Workers template, restrict it to the production account, and include Account / D1 / Edit for migrations and Account / Workers R2 Storage / Edit for the R2 binding.
+
+Before the first CI deployment, provision the database and bucket and set `CLERK_SECRET_KEY` on the `app` Worker with `npx wrangler secret put CLERK_SECRET_KEY`. Set the optional `CLERK_JWT_KEY` there too if needed. Worker secrets stay in Cloudflare and are retained during deployment; they are not GitHub build variables. Ensure `CLERK_AUTHORIZED_PARTIES` in `wrangler.jsonc` matches the deployed origin.
+
+The GitHub `production` environment can restrict deployment to `main` and require reviewers if desired. Database migrations run before the new Worker is uploaded, so migrations must remain compatible with the currently deployed application. If migration or deployment fails, inspect the workflow logs before retrying; a failed Worker upload does not undo successful migrations.
+
 ## Offline model
 
 IndexedDB stores pets, journal entries, health measurements, care reminders, walks and potty breaks, meals and food supplies, media blobs, and an explicit mutation outbox in a database scoped to the signed-in Clerk user. Client-generated UUIDs, per-edit revisions, and stable media IDs make retries idempotent. Acknowledgements only clear the revision that was sent, so in-flight edits remain queued. The sync service pushes pending changes and downloads an owner-scoped D1 snapshot at startup and when connectivity returns. Pending local edits are protected while remote records merge by `updated_at`, and failed changes remain editable and can be retried from the status control. Existing pre-auth local data is claimed once by the first account that signs in after upgrading.
