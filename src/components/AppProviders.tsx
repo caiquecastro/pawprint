@@ -113,8 +113,12 @@ function AuthenticatedProviders({
 
 function LoadingScreen({ message }: { message: string }) {
   return (
-    <main id="main-content" className="launch-screen" aria-live="polite">
-      <span className="launch-mark">
+    <main
+      id="main-content"
+      className="min-h-svh grid place-content-center justify-items-center text-ink-soft gap-4"
+      aria-live="polite"
+    >
+      <span className="grid place-items-center bg-sunshine text-ink rounded-[50%_50%_46%_54%_/_54%_46%_54%_46%] animate-breathe size-19">
         <PawPrint size={34} />
       </span>
       <p>{message}</p>
