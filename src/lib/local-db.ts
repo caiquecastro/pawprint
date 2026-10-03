@@ -7,6 +7,8 @@ import type {
   OutboxItem,
   Outing,
   Pet,
+  SyncSnapshot,
+  SyncState,
 } from './types'
 import { outingSchema } from './schemas'
 
@@ -197,9 +199,11 @@ export async function deleteJournalEntry(id: string) {
   const db = await getDb()
   const existing = await db.get('journal', id)
   if (!existing) return
+  const now = new Date().toISOString()
   const record: JournalEntry = {
     ...existing,
-    deletedAt: new Date().toISOString(),
+    deletedAt: now,
+    updatedAt: now,
     syncState: 'pending',
   }
   await persistRecord('journal', record, 'delete')
@@ -254,9 +258,37 @@ export async function listUnsyncedMedia() {
 
 export async function updateMediaUpload(id: string, patch: Partial<MediaRecord>) {
   const db = await getDb()
-  const record = await db.get('media', id)
-  if (!record) return
-  await db.put('media', { ...record, ...patch })
+  const tx = db.transaction(['media', 'pets', 'journal'], 'readwrite')
+  const record = await tx.objectStore('media').get(id)
+  if (!record) {
+    await tx.done
+    return
+  }
+  const updated = { ...record, ...patch }
+  await tx.objectStore('media').put(updated)
+
+  if (patch.localUrl || patch.objectKey) {
+    if (record.journalEntryId) {
+      const journal = await tx.objectStore('journal').get(record.journalEntryId)
+      if (journal) {
+        await tx.objectStore('journal').put({
+          ...journal,
+          photoUrl: patch.localUrl ?? journal.photoUrl,
+        })
+      }
+    } else {
+      const pet = await tx.objectStore('pets').get(record.petId)
+      if (pet) {
+        await tx.objectStore('pets').put({
+          ...pet,
+          avatarObjectKey: patch.objectKey ?? pet.avatarObjectKey,
+          avatarUrl: patch.localUrl ?? pet.avatarUrl,
+        })
+      }
+    }
+  }
+
+  await tx.done
   notifyChanged()
 }
 
@@ -325,6 +357,143 @@ export async function updateSyncResult(item: OutboxItem, success: boolean, error
   }
   await tx.done
   notifyChanged()
+}
+
+type VersionedRecord = {
+  id: string
+  updatedAt: string
+  syncState?: SyncState
+  syncError?: string
+}
+
+async function mergeVersionedRecords<T extends VersionedRecord>(
+  records: T[],
+  entity: SyncedEntity,
+  pending: Set<string>,
+  get: (id: string) => Promise<T | undefined>,
+  put: (record: T) => Promise<unknown>,
+) {
+  let changed = false
+
+  for (const remote of records) {
+    if (pending.has(`${entity}:${remote.id}`)) continue
+
+    const local = await get(remote.id)
+    if (local && local.updatedAt > remote.updatedAt) continue
+
+    const merged = {
+      ...remote,
+      syncState: 'synced',
+      syncError: undefined,
+    }
+    if (local && shallowEqual(local, merged)) continue
+
+    await put(merged)
+    changed = true
+  }
+
+  return changed
+}
+
+function shallowEqual(left: object, right: object) {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)])
+  return [...keys].every(
+    (key) => (left as Record<string, unknown>)[key] === (right as Record<string, unknown>)[key],
+  )
+}
+
+export async function applySyncSnapshot(snapshot: SyncSnapshot) {
+  const db = await getDb()
+  const tx = db.transaction(
+    ['pets', 'journal', 'measurements', 'reminders', 'media', 'outbox', 'outings'],
+    'readwrite',
+  )
+  const pending = new Set(
+    (await tx.objectStore('outbox').getAll()).map((item) => `${item.entity}:${item.entityId}`),
+  )
+  const localMedia = await tx.objectStore('media').getAll()
+  const pendingAvatarUrls = new Map<string, string>()
+  const pendingJournalUrls = new Map<string, string>()
+  for (const record of localMedia) {
+    if (record.syncState === 'synced' || !record.localUrl) continue
+    if (record.journalEntryId) pendingJournalUrls.set(record.journalEntryId, record.localUrl)
+    else pendingAvatarUrls.set(record.petId, record.localUrl)
+  }
+  let changed = false
+
+  changed =
+    (await mergeVersionedRecords(
+      snapshot.pets.map((record) => ({
+        ...record,
+        avatarUrl: pendingAvatarUrls.get(record.id) ?? record.avatarUrl,
+      })),
+      'pet',
+      pending,
+      (id) => tx.objectStore('pets').get(id),
+      (record) => tx.objectStore('pets').put(record),
+    )) || changed
+  changed =
+    (await mergeVersionedRecords(
+      snapshot.journal.map((record) => ({
+        ...record,
+        photoUrl: pendingJournalUrls.get(record.id) ?? record.photoUrl,
+      })),
+      'journal',
+      pending,
+      (id) => tx.objectStore('journal').get(id),
+      (record) => tx.objectStore('journal').put(record),
+    )) || changed
+  changed =
+    (await mergeVersionedRecords(
+      snapshot.measurements,
+      'measurement',
+      pending,
+      (id) => tx.objectStore('measurements').get(id),
+      (record) => tx.objectStore('measurements').put(record),
+    )) || changed
+  changed =
+    (await mergeVersionedRecords(
+      snapshot.reminders,
+      'reminder',
+      pending,
+      (id) => tx.objectStore('reminders').get(id),
+      (record) => tx.objectStore('reminders').put(record),
+    )) || changed
+  changed =
+    (await mergeVersionedRecords(
+      snapshot.outings,
+      'outing',
+      pending,
+      (id) => tx.objectStore('outings').get(id),
+      (record) => tx.objectStore('outings').put(record),
+    )) || changed
+
+  const mediaByObjectKey = new Map(
+    localMedia
+      .filter((record) => record.objectKey)
+      .map((record) => [record.objectKey as string, record]),
+  )
+  for (const remote of snapshot.media) {
+    const local =
+      (await tx.objectStore('media').get(remote.id)) ??
+      (remote.objectKey ? mediaByObjectKey.get(remote.objectKey) : undefined)
+    if (local && local.syncState !== 'synced') continue
+
+    const merged = {
+      ...remote,
+      syncState: 'synced' as const,
+    }
+    if (local && shallowEqual(local, merged)) continue
+
+    if (local && local.id !== remote.id) {
+      await tx.objectStore('media').delete(local.id)
+    }
+    await tx.objectStore('media').put(merged)
+    changed = true
+  }
+
+  await tx.done
+  if (changed) notifyChanged()
 }
 
 export async function listOutings(petId: string) {

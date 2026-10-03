@@ -1,4 +1,11 @@
-import { listOutbox, listUnsyncedMedia, updateMediaUpload, updateSyncResult } from './local-db'
+import {
+  applySyncSnapshot,
+  listOutbox,
+  listUnsyncedMedia,
+  updateMediaUpload,
+  updateSyncResult,
+} from './local-db'
+import type { SyncSnapshot } from './types'
 
 let syncing: Promise<void> | null = null
 
@@ -41,6 +48,7 @@ async function runSync(force: boolean) {
     }
   }
   await syncMedia(force)
+  await pullSnapshot()
 }
 
 async function syncMedia(force: boolean) {
@@ -52,6 +60,7 @@ async function syncMedia(force: boolean) {
       await updateMediaUpload(item.id, { syncState: 'pending', progress: 15, error: undefined })
       const form = new FormData()
       form.append('file', item.blob, `${item.id}.${item.mimeType.split('/')[1] || 'jpg'}`)
+      form.append('mediaId', item.id)
       form.append('petId', item.petId)
       if (item.journalEntryId) form.append('journalEntryId', item.journalEntryId)
       const response = await fetch('/api/uploads', { method: 'POST', body: form })
@@ -75,6 +84,29 @@ async function syncMedia(force: boolean) {
         progress: 0,
       })
     }
+  }
+}
+
+async function pullSnapshot() {
+  try {
+    const response = await fetch('/api/sync', { method: 'GET' })
+    if (!response.ok) {
+      const details = (await response
+        .json()
+        .catch(() => ({ message: 'Cloud records could not be downloaded.' }))) as {
+        message?: string
+      }
+      throw new Error(details.message || 'Cloud records could not be downloaded.')
+    }
+
+    await applySyncSnapshot((await response.json()) as SyncSnapshot)
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: 'sync_pull_failed',
+        message: error instanceof Error ? error.message : 'unknown',
+      }),
+    )
   }
 }
 

@@ -14,7 +14,7 @@
 - [x] Mutation revisions and acknowledgement checks preserve edits made during synchronization
 - [x] R2 upload/download endpoints and D1 media metadata
 - [x] IndexedDB records and explicit mutation outbox
-- [x] Startup/online synchronization with retry and client UUID idempotency
+- [x] Two-way startup/online synchronization with retry, conflict handling, and idempotency
 - [x] Clerk authentication, account-scoped IndexedDB, and owner-authorized D1/R2 routes
 - [x] Manifest, service worker, app icons, offline fallback, update prompt
 - [x] Semantic labels, focus styles, reduced motion, 44px touch targets
@@ -22,7 +22,7 @@
 ## Decisions
 
 - IndexedDB is the immediate source of truth on-device; D1 is the synchronized server record.
-- Outbox keys are stable per entity; each edit gets a new revision, and D1 records processed revisions to make retries idempotent.
+- Outbox keys collapse unsent edits per entity; each edit gets a new revision, and D1 records it atomically with the entity write.
 - The MVP is deliberately single-owner per account; Clerk sessions provide the owner boundary.
 - Photos remain in IndexedDB while offline and use a Worker-only R2 binding when uploaded.
 
