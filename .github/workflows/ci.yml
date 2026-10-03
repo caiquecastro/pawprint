@@ -8,9 +8,10 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint
+  check:
+    name: Checks
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -25,5 +26,71 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run lint
-        run: npm run lint
+      - name: Run checks
+        run: npm run check
+
+  deploy:
+    name: Deploy production
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+
+    steps:
+      - name: Check deployment configuration
+        run: |
+          missing=0
+
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID VITE_CLERK_PUBLISHABLE_KEY; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub Actions configuration: $name"
+              missing=1
+            fi
+          done
+
+          exit "$missing"
+
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.12
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Check commit is still current main
+        id: deployment
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin main
+          latest_sha=$(git rev-parse FETCH_HEAD)
+
+          if [ "$GITHUB_SHA" = "$latest_sha" ]; then
+            echo "is_current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping deployment because this commit is no longer the current main."
+          fi
+
+      - name: Apply production database migrations
+        if: steps.deployment.outputs.is_current == 'true'
+        run: npm run db:migrate:remote
+
+      - name: Deploy Worker
+        if: steps.deployment.outputs.is_current == 'true'
+        run: npx --no-install wrangler deploy
