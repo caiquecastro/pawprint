@@ -1,5 +1,7 @@
 import { queryOptions } from '@tanstack/react-query'
 import {
+  listFood,
+  listFoodSupplies,
   getJournalEntry,
   getPet,
   listJournal,
@@ -43,5 +45,19 @@ export const outingsQuery = (petId: string) =>
   queryOptions({
     queryKey: ['outings', petId],
     queryFn: () => listOutings(petId),
+    enabled: typeof window !== 'undefined',
+  })
+
+export const foodQuery = (petId: string) =>
+  queryOptions({
+    queryKey: ['food', petId],
+    queryFn: () => listFood(petId),
+    enabled: typeof window !== 'undefined',
+  })
+
+export const foodSuppliesQuery = (petId: string) =>
+  queryOptions({
+    queryKey: ['food-supplies', petId],
+    queryFn: () => listFoodSupplies(petId),
     enabled: typeof window !== 'undefined',
   })

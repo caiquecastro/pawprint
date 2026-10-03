@@ -120,7 +120,7 @@ describe('walk and potty records', () => {
     expect((await listPets())[0].name).toBe('Juniper')
     expect(await listOutbox()).toHaveLength(1)
     expect(await listOutings(petId)).toHaveLength(0)
-    expect((await getDb()).version).toBe(2)
+    expect((await getDb()).version).toBe(3)
   })
 })
 

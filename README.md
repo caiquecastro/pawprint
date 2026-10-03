@@ -39,7 +39,7 @@ All D1 and R2 access stays in authenticated Worker-only route handlers (`/api/sy
 
 ## Offline model
 
-IndexedDB stores pets, journal entries, health measurements, care reminders, walks and potty breaks, media blobs, and an explicit mutation outbox in a database scoped to the signed-in Clerk user. Client-generated UUIDs, per-edit revisions, and stable media IDs make retries idempotent. Acknowledgements only clear the revision that was sent, so in-flight edits remain queued. The sync service pushes pending changes and downloads an owner-scoped D1 snapshot at startup and when connectivity returns. Pending local edits are protected while remote records merge by `updated_at`, and failed changes remain editable and can be retried from the status control. Existing pre-auth local data is claimed once by the first account that signs in after upgrading.
+IndexedDB stores pets, journal entries, health measurements, care reminders, walks and potty breaks, meals and food supplies, media blobs, and an explicit mutation outbox in a database scoped to the signed-in Clerk user. Client-generated UUIDs, per-edit revisions, and stable media IDs make retries idempotent. Acknowledgements only clear the revision that was sent, so in-flight edits remain queued. The sync service pushes pending changes and downloads an owner-scoped D1 snapshot at startup and when connectivity returns. Pending local edits are protected while remote records merge by `updated_at`, and failed changes remain editable and can be retried from the status control. Existing pre-auth local data is claimed once by the first account that signs in after upgrading.
 
 The service worker caches the application shell and safe static assets. It deliberately excludes `/api/*` and all non-GET requests.
 
@@ -54,3 +54,11 @@ Dogs have quick walk and potty controls on Today. Care links to the full Walks &
 Pee and poop counts are optional: blank means not recorded, while zero explicitly means none. Quick pee/poop buttons create standalone potty breaks with undo. Counts recorded during a walk belong to that walk; the last-record labels show the walk start time, not an exact potty event time. Today and seven-day totals include completed walks grouped by their local start date. Only one active walk per pet is allowed on a device. GPS and distance are not included.
 
 Apply `migrations/0002_outings.sql` with the normal D1 migration commands before deploying this feature. The IndexedDB upgrade preserves existing records and queued changes.
+
+## Food and supplies
+
+Today has a quick meal log and a link to Food; Care also links to Food. Log a food name, portion, unit (grams, ounces, cups, or servings), feeding time, and optional notes. Meals can be edited or deleted from the history.
+
+Add each bag or batch as a separate supply with its starting amount and purchase time. Link meals to that supply to deduct their portions automatically. Linked portions use the supply’s unit; units cannot change on an existing supply. Editing, deleting, or moving a meal between supplies recalculates the balance. Meals without a supply stay in the history without affecting stock. Supplies show a restock notice at 20% or less remaining, and flag portions logged beyond the starting amount. Removing a supply keeps its meal history.
+
+Meals and supplies work offline and sync with the account. Apply `migrations/0003_food.sql` with the normal D1 migration commands before deploying. IndexedDB upgrades preserve existing records and queued changes.

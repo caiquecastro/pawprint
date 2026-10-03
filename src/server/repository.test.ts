@@ -5,7 +5,7 @@ import {
   type PlatformProxy,
   unstable_splitSqlQuery as splitSqlQuery,
 } from 'wrangler'
-import type { OutboxItem, Pet } from '../lib/types'
+import type { FoodEntry, FoodSupply, OutboxItem, Pet } from '../lib/types'
 import { PawprintRepository } from './repository'
 
 const ownerId = 'repository-test-user'
@@ -46,6 +46,7 @@ beforeAll(async () => {
     'migrations/0000_pawprint.sql',
     'migrations/0001_auth_ownership.sql',
     'migrations/0002_outings.sql',
+    'migrations/0003_food.sql',
   ]) {
     const statements = splitSqlQuery(await readFile(migration, 'utf8')).map((statement) =>
       platform.env.DB.prepare(statement),
@@ -117,5 +118,136 @@ describe('D1 synchronization repository', () => {
     expect((await otherOwner.getSnapshot()).pets).toContainEqual(
       expect.objectContaining({ id: otherPet.id }),
     )
+  })
+})
+
+describe('D1 food and supply synchronization', () => {
+  const foodMutation = (
+    record: FoodEntry | FoodSupply,
+    entity: 'food' | 'foodSupply',
+  ): OutboxItem => ({
+    id: `${entity}:${record.id}`,
+    revision: crypto.randomUUID(),
+    entity,
+    entityId: record.id,
+    operation: record.deletedAt ? 'delete' : 'create',
+    payload: record,
+    createdAt: now,
+    attemptCount: 0,
+    status: 'pending',
+  })
+
+  it('round-trips stock and meals, deduplicates retries, rejects stale edits, and persists deletions', async () => {
+    const petId = crypto.randomUUID()
+    await repository.applyMutation(mutation(pet(petId)))
+    const bag: FoodSupply = {
+      id: crypto.randomUUID(),
+      petId,
+      food: 'Kibble',
+      amount: 1000,
+      unit: 'g',
+      purchasedAt: now,
+      notes: '',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await repository.applyMutation(foodMutation(bag, 'foodSupply'))
+    const entry: FoodEntry = {
+      id: crypto.randomUUID(),
+      petId,
+      supplyId: bag.id,
+      food: 'Kibble',
+      amount: 100,
+      unit: 'g',
+      fedAt: now,
+      notes: '',
+      createdAt: now,
+      updatedAt: now,
+    }
+    const queued = foodMutation(entry, 'food')
+    await repository.applyMutation(queued)
+    expect(await repository.applyMutation(queued)).toMatchObject({ duplicate: true })
+    await repository.applyMutation(
+      foodMutation({ ...entry, amount: 150, updatedAt: '2026-10-01T14:00:00.000Z' }, 'food'),
+    )
+    await repository.applyMutation(
+      foodMutation({ ...entry, amount: 75, updatedAt: '2026-10-01T13:00:00.000Z' }, 'food'),
+    )
+    const snapshot = await repository.getSnapshot()
+    expect(snapshot.food.find((item) => item.id === entry.id)).toMatchObject({
+      amount: 150,
+      supplyId: bag.id,
+    })
+    expect(snapshot.foodSupplies.find((item) => item.id === bag.id)).toMatchObject({
+      amount: 1000,
+      unit: 'g',
+    })
+    await repository.applyMutation(
+      foodMutation(
+        { ...entry, deletedAt: '2026-10-01T15:00:00.000Z', updatedAt: '2026-10-01T15:00:00.000Z' },
+        'food',
+      ),
+    )
+    expect(
+      (await repository.getSnapshot()).food.find((item) => item.id === entry.id)?.deletedAt,
+    ).toBe('2026-10-01T15:00:00.000Z')
+  })
+
+  it('enforces ownership on food, supplies, and links and validates portions', async () => {
+    const other = new PawprintRepository(platform.env.DB, 'food-other-owner')
+    const otherPetId = crypto.randomUUID()
+    const ownPetId = crypto.randomUUID()
+    await other.applyMutation(mutation(pet(otherPetId)))
+    await repository.applyMutation(mutation(pet(ownPetId)))
+    const bag: FoodSupply = {
+      id: crypto.randomUUID(),
+      petId: otherPetId,
+      food: 'Private food',
+      amount: 500,
+      unit: 'g',
+      purchasedAt: now,
+      notes: '',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await other.applyMutation(foodMutation(bag, 'foodSupply'))
+    const entry: FoodEntry = {
+      id: crypto.randomUUID(),
+      petId: otherPetId,
+      food: 'Private food',
+      amount: 50,
+      unit: 'g',
+      supplyId: bag.id,
+      fedAt: now,
+      notes: '',
+      createdAt: now,
+      updatedAt: now,
+    }
+    await other.applyMutation(foodMutation(entry, 'food'))
+    await expect(repository.applyMutation(foodMutation(entry, 'food'))).rejects.toThrow(
+      'not available',
+    )
+    await expect(
+      repository.applyMutation(foodMutation({ ...entry, petId: ownPetId }, 'food')),
+    ).rejects.toThrow('not available')
+    await expect(
+      repository.applyMutation(
+        foodMutation({ ...entry, id: crypto.randomUUID(), petId: ownPetId }, 'food'),
+      ),
+    ).rejects.toThrow('not available')
+    await expect(
+      repository.applyMutation(foodMutation({ ...bag, petId: ownPetId }, 'foodSupply')),
+    ).rejects.toThrow('not available')
+    await expect(
+      repository.applyMutation(
+        foodMutation(
+          { ...entry, id: crypto.randomUUID(), petId: ownPetId, supplyId: undefined, amount: 0 },
+          'food',
+        ),
+      ),
+    ).rejects.toThrow('Enter a portion greater than zero.')
+    const snapshot = await repository.getSnapshot()
+    expect(snapshot.food.some((item) => item.id === entry.id)).toBe(false)
+    expect(snapshot.foodSupplies.some((item) => item.id === bag.id)).toBe(false)
   })
 })

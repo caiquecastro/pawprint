@@ -112,7 +112,8 @@ export function AppShell({ petId, children }: { petId: string; children: React.R
             petId={petId}
             active={
               path.startsWith(item.to.replace('$petId', petId)) ||
-              (item.label === 'Care' && path === `/pets/${petId}/walks`)
+              (item.label === 'Care' &&
+                (path === `/pets/${petId}/walks` || path === `/pets/${petId}/food`))
             }
           />
         ))}

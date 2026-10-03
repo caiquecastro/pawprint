@@ -1,5 +1,19 @@
 @import 'tailwindcss';
 
+@theme {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-cream: var(--white);
+  --color-sunshine: var(--yellow);
+  --color-coral: var(--coral);
+  --color-line: var(--line);
+  --breakpoint-tablet: 720px;
+  --radius-card: 22px 22px 18px 18px;
+  --shadow-panel: 0 8px 30px rgba(20, 35, 59, 0.045);
+  --font-serif: var(--serif);
+  --animate-sheet-up: sheet-up 0.22s ease-out;
+}
+
 :root {
   --ink: #14233b;
   --ink-soft: #526071;

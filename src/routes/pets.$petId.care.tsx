@@ -73,6 +73,13 @@ function CareRoute() {
         </div>
         <span aria-hidden>→</span>
       </Link>
+      <Link className="walk-care-link card mt-3" to="/pets/$petId/food" params={{ petId }}>
+        <div>
+          <h2>Food & supply</h2>
+          <p>Log meals and see how much food is left.</p>
+        </div>
+        <span aria-hidden>→</span>
+      </Link>
       <section className="section-block">
         <div className="section-heading">
           <div>

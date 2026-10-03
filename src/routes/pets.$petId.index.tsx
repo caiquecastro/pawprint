@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { AppShell } from '../components/AppShell'
 import { EmptyState } from '../components/EmptyState'
 import { JournalComposer } from '../components/JournalComposer'
+import { FoodTracker } from '../components/FoodTracker'
 import { WalkTracker } from '../components/WalkTracker'
 import { SyncBadge } from '../components/SyncBadge'
 import { daysTogether, formatDate, petAge } from '../lib/format'
@@ -74,6 +75,7 @@ function TodayRoute() {
       </button>
 
       {pet.species === 'dog' && <WalkTracker petId={petId} />}
+      <FoodTracker petId={petId} />
 
       <section className="mood-card card">
         <div>
